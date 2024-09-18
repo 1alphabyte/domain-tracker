@@ -1,0 +1,96 @@
+form {
+	display: flex;
+	flex-direction: column;
+}
+table {
+	width: 100%;
+}
+
+td {
+	border: 1px solid #ebfff4;
+	border-radius: 5px;
+}
+
+#rawDataDiag {
+	max-width: 95%;
+	max-height: 85%;
+}
+
+.closeDiag {
+	border: none;
+	cursor: pointer;
+	background-color: transparent;
+	position: absolute;
+	top: 0;
+	right: 0;
+	margin: 10px;
+	font-size: large;
+	outline: none;
+	color: #ebfff4;
+}
+
+dialog {
+	border: none;
+	border-radius: 10px;
+	background-color: #454d55;
+	color: #ebfff4;
+}
+
+.rawDataBtn {
+	background-color: #5e43f3;
+	user-select: none;
+}
+
+.rawDataBtn:hover {
+	background-color: #4c3af3;
+	cursor: pointer;
+}
+
+body {
+	background-color: #282828;
+	color: #ebfff4;
+}
+
+button {
+	cursor: pointer;
+	user-select: none;
+	border: none;
+	border-radius: 5px;
+}
+
+header {
+	display: flex;
+	align-items: center;
+}
+
+#logo {
+	width: 35px;
+}
+
+.editIcon {
+	cursor: pointer;
+	width: 15px;
+	padding: 3px;
+	margin-left: 5px;
+	background-color: #5e43f3;
+	content: url('/images/edit-icon.svg');
+	border-radius: 5px;
+}
+
+.deleteIcon {
+	cursor: pointer;
+	width: 15px;
+	padding: 3px;
+	margin-left: 5px;
+	background-color: #f34343;
+	content: url('/images/delete-icon.webp');
+	border-radius: 5px;
+}
+
+.editIcon:hover {
+	background-color: #4c3af3;
+}
+
+#warning {
+	color: #fbff00;
+}

@@ -1,0 +1,16 @@
+{
+  "name": "domain-tracker",
+  "module": "index.js",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.15",
+    "rdap-client": "^1.0.5",
+    "whoiser": "^1.18.0"
+  }
+}
