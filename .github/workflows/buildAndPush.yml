@@ -20,10 +20,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: 'ghcr.io/1alphabyte/Domain-tracker:frontend'
+          tags: 'ghcr.io/1alphabyte/domain-tracker:frontend'
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: 'ghcr.io/1alphabyte/Domain-tracker:backend'
+          tags: 'ghcr.io/1alphabyte/domain-tracker:backend'
           dockerfile: ./backend/Dockerfile
