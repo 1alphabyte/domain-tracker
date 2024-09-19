@@ -24,6 +24,6 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
+          context: "{{defaultContext}}:backend"
           push: true
           tags: 'ghcr.io/1alphabyte/domain-tracker:backend'
-          context: ./backend
