@@ -10,6 +10,7 @@ RUN cd /temp/prod && bun install --frozen-lockfile --production
 FROM base
 COPY --from=install /temp/prod/node_modules node_modules
 COPY index.js migration.ts package.json refresh.js /usr/src/app/
-RUN bun run migration.ts
+COPY init.sh /
+COPY crontab /etc/crontabs/root
 
-CMD [ "bun", "run", "index.js" ]
+CMD [ "/init.sh" ]

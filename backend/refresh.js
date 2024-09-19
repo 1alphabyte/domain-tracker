@@ -8,8 +8,8 @@ let transporter = nodemailer.createTransport({
 	port: 465,
 	secure: true,
 	auth: {
-		user: "domainmod_sender",
-		pass: "t}yOZ$O,w7l{C{J1V%1$",
+		user: process.env.SMTP_USER,
+		pass: process.env.SMTP_PASSWORD,
 	},
 });
 

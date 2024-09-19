@@ -9,4 +9,4 @@ db.query("CREATE TABLE IF NOT EXISTS clients (id INTEGER PRIMARY KEY, name TEXT 
 
 // load init user
 const password = await Bun.password.hash(process.env.INIT_PASSWORD || "admin123");
-db.query("INSERT INTO users (username, password) VALUES (?1, ?2)").run("admin", password);
+db.query("INSERT INTO users (username, password) VALUES (?1, ?2)").run(process.env.INIT_USER || "admin", password);
