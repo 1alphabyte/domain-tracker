@@ -1,0 +1,15 @@
+FROM oven/bun:alpine AS base
+WORKDIR /usr/src/app
+
+FROM base AS install
+RUN mkdir -p /temp/prod
+COPY package.json bun.lockb /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
+
+
+FROM base
+COPY --from=install /temp/prod/node_modules node_modules
+COPY index.js migration.ts package.json refresh.js /usr/src/app/
+RUN bun run migration.ts
+
+CMD [ "bun", "run", "index.js" ]

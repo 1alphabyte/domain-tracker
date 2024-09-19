@@ -1,0 +1,15 @@
+{
+	admin off
+}
+{$address} {
+	redir / /login permanent
+	file_server /* {
+		root /srv
+	}
+	reverse_proxy /api/* {
+		to backend:3000
+	}
+	handle_errors 404 {
+		respond "404: Page not found"
+	}
+}

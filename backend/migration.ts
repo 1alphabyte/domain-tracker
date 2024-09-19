@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 
-const db = new Database("./db.sqlite");
+const db = new Database("./db.sqlite", { create: true });
 
 db.query("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT NOT NULL UNIQUE, password TEXT NOT NULL, lastLogin INTEGER)").run();
 db.query("CREATE TABLE IF NOT EXISTS sessions (token TEXT NOT NULL, userId INTEGER NOT NULL, expires INTEGER NOT NULL, FOREIGN KEY(userId) REFERENCES users(id))").run();
