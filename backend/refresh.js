@@ -17,7 +17,7 @@ db.query("SELECT * FROM sessions").all().forEach((session) => {
 	if (session.expires < Date.now()) {
 		db.query("DELETE FROM sessions WHERE token = ?1").run(session.token);
 	}
-})
+});
 
 (async () => {
 	const domains = db.query("SELECT * FROM domains").all();
@@ -41,15 +41,18 @@ db.query("SELECT * FROM sessions").all().forEach((session) => {
 			} catch (e) {
 				console.error(e);
 				console.info("Trying whoiser", body.domain);
-				let whoisData = await whoiser.domain(body.domain, { follow: 1, ignorePrivacy: false }).catch((e) => {
+				try {
+					let whoisData = await whoiser.domain(body.domain, { follow: 1, ignorePrivacy: false });
+					whoisData = Object.values(whoisData)[0];
+					exp = new Date(whoisData["Expiry Date"]).getTime();
+					ns = whoisData["Name Server"].toString();
+					reg = whoisData.Registrar;
+					raw = JSON.stringify(whoisData);
+				} catch (e) {
 					console.error(e);
-					return;
-				});
-				whoisData = Object.values(whoisData)[0];
-				exp = new Date(whoisData["Expiry Date"]).getTime();
-				ns = whoisData["Name Server"].toString();
-				reg = whoisData.Registrar;
-				raw = JSON.stringify(whoisData);
+					console.info("Error getting domain", body.domain);
+					continue;
+				}
 			}
 			try {
 				db.query("UPDATE domains SET expiration = ?1, nameservers = ?2, registrar = ?3, rawWhoisData = ?4 WHERE id = ?5")
@@ -94,4 +97,4 @@ if (expiringSoon.length != 0) {
 			console.info(info);
 		}
 	});
-}
+};
