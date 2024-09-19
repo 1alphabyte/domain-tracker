@@ -1,7 +1,7 @@
 ---
 services:
   frontend:
-    image: ghcr.io/1alphabyte/Domain-tracker:frontend
+    image: ghcr.io/1alphabyte/domain-tracker:frontend
     container_name: domaintrk
     depends_on:
       - backend
@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/1alphabyte/Domain-tracker:backend
+    image: ghcr.io/1alphabyte/domain-tracker:backend
     volumes:
       - data:/usr/src/app
     container_name: domaintrk_backend
