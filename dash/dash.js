@@ -61,19 +61,21 @@ async function loadDomains() {
 		raw.dataset.id = d.id;
 		raw.textContent = "View";
 		raw.className = "rawDataBtn";
-		notes.dataset.id = d.id;
 		notes.textContent = d.notes ? "View" : "None";
-		d.notes ? notes.className = "rawDataBtn" : null;
 
-		notes.addEventListener("click", (e) => {
-			let id = e.target.dataset.id;
-			let d = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].notes;
-			let diag = document.getElementById("rawDataDiag");
-			document.getElementById("rawDataDiagHeader").textContent = "Notes";
-			let pre = document.getElementById("rawData");
-			pre.textContent = d;
-			diag.showModal();
-		});
+		if (d.notes) {
+			notes.className = "rawDataBtn";	
+			notes.dataset.id = d.id;
+			notes.addEventListener("click", (e) => {
+				let id = e.target.dataset.id;
+				let d = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].notes;
+				let diag = document.getElementById("rawDataDiag");
+				document.getElementById("rawDataDiagHeader").textContent = "Notes";
+				let pre = document.getElementById("rawData");
+				pre.textContent = d;
+				diag.showModal();
+			});	
+		}
 
 		raw.addEventListener("click", (e) => {
 			let id = e.target.dataset.id;
