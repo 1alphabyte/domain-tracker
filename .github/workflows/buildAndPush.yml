@@ -1,5 +1,5 @@
 name: Build and Push Docker Image
-'on':
+"on":
   push:
     branches:
       - main
@@ -14,16 +14,16 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: '${{ github.actor }}'
-          password: '${{ secrets.GITHUB_TOKEN }}'
+          username: "${{ github.actor }}"
+          password: "${{ secrets.GITHUB_TOKEN }}"
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: 'ghcr.io/1alphabyte/domain-tracker:frontend'
+          tags: "ghcr.io/1alphabyte/domain-tracker:frontend"
       - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:backend"
           push: true
-          tags: 'ghcr.io/1alphabyte/domain-tracker:backend'
+          tags: "ghcr.io/1alphabyte/domain-tracker:backend"

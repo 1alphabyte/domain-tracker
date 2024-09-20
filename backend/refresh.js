@@ -85,7 +85,8 @@ if (expiringSoon.length != 0) {
 		from: "domaintrk@cbt.io",
 		to: "helpdesk@cbt.io",
 		subject: "Domains expiring soon",
-		text: expiringSoon.map((d) => {
+		text: "    ,---,                        ____                                              \n  .'  .' `\\                    ,'  , `.             ,--,                           \n,---.'     \\    ,---.       ,-+-,.' _ |           ,--.'|         ,---,             \n|   |  .`\\  |  '   ,'\\   ,-+-. ;   , ||           |  |,      ,-+-. /  | .--.--.    \n:   : |  '  | /   /   | ,--.'|'   |  || ,--.--.   `--'_     ,--.'|'   |/  /    '   \n|   ' '  ;  :.   ; ,. :|   |  ,', |  |,/       \\  ,' ,'|   |   |  ,\"' |  :  /`./   \n'   | ;  .  |'   | |: :|   | /  | |--'.--.  .-. | '  | |   |   | /  | |  :  ;_     \n|   | :  |  ''   | .; :|   : |  | ,    \\__\\/: . . |  | :   |   | |  | |\\  \\    `.  \n'   : | /  ; |   :    ||   : |  |/     ,\" .--.; | '  : |__ |   | |  |/  `----.   \\ \n|   | '` ,/   \\   \\  / |   | |`-'     /  /  ,.  | |  | '.'||   | |--'  /  /`--'  / \n;   :  .'      `----'  |   ;/        ;  :   .'   \\;  :    ;|   |/     '--'.     /  \n|   ,.'                '---'         |  ,     .-./|  ,   / '---'        `--'---'   \n'---'                                 `--`---'     ---`-'                          \nexpiring soon\n" 
+		+ expiringSoon.map((d) => {
 			const expirationDate = new Date(d.expiration);
 
 			return `${d.domain} [${d.client}] is expiring on ${expirationDate.toLocaleDateString()} (in ${Math.ceil((expirationDate - currentDate) / (1000 * 60 * 60 * 24))} days)`;

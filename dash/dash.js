@@ -1,5 +1,6 @@
+const table = document.querySelector("table");
+
 async function loadDomains() {
-	const table = document.querySelector("table");
 	const dropdown = document.getElementById("client");
 
 	let domains = await fetch("/api/get")
@@ -71,7 +72,7 @@ async function loadDomains() {
 			document.getElementById("rawDataDiagHeader").textContent = "Notes";
 			let pre = document.getElementById("rawData");
 			pre.textContent = d;
-			diag.showModal	();
+			diag.showModal();
 		});
 
 		raw.addEventListener("click", (e) => {
@@ -169,9 +170,9 @@ function main() {
 				alert("Error adding domain");
 			}
 		});
-	
+
 	});
-	
+
 	document.getElementById("addCForm").addEventListener("submit", (e) => {
 		e.preventDefault();
 		document.getElementById('AddCDiag').close();
@@ -189,15 +190,15 @@ function main() {
 			}
 		});
 	});
-	
-	
+
+
 	document.getElementById("addD").addEventListener("click", () => {
-		document.getElementById("addDDiag").showModal();	
+		document.getElementById("addDDiag").showModal();
 	});
 	document.getElementById("AddC").addEventListener("click", () => {
-		document.getElementById("AddCDiag").showModal();	
+		document.getElementById("AddCDiag").showModal();
 	});
-	
+
 	document.querySelectorAll(".closeDiag").forEach((b) => {
 		b.addEventListener("click", (e) => {
 			e.target.parentElement.close();
@@ -252,3 +253,70 @@ function main() {
 }
 
 main();
+
+
+
+
+function sortTable(n) {
+	let rows, i, x, y, shouldSwitch, dir, switchcount = 0;
+	let switching = true;
+	dir = "asc";
+	while (switching) {
+		switching = false;
+		rows = table.rows;
+		for (i = 1; i < (rows.length - 1); i++) {
+			shouldSwitch = false;
+			x = rows[i].getElementsByTagName("TD")[n];
+			y = rows[i + 1].getElementsByTagName("TD")[n];
+			if (dir == "asc") {
+				if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+					// If so, mark as a switch and break the loop:
+					shouldSwitch = true;
+					break;
+				}
+			} else if (dir == "desc") {
+				if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+					// If so, mark as a switch and break the loop:
+					shouldSwitch = true;
+					break;
+				}
+			}
+		}
+		if (shouldSwitch) {
+			rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+			switching = true;
+			// Each time a switch is done, increase this count by 1:
+			switchcount++;
+		} else {
+			if (switchcount == 0 && dir == "asc") {
+				dir = "desc";
+				switching = true;
+			}
+		}
+	}
+}
+
+
+function sortTableDate(n) {
+	let rows, i, x, y, shouldSwitch, switchcount = 0;
+	let switching = true;
+	while (switching) {
+		switching = false;
+		rows = table.rows;
+		for (i = 1; i < (rows.length - 1); i++) {
+			shouldSwitch = false;
+			x = rows[i].getElementsByTagName("TD")[n];
+			y = rows[i + 1].getElementsByTagName("TD")[n];
+			if (new Date(x.innerHTML).getTime() > new Date(y.innerHTML).getTime()) {
+				shouldSwitch = true;
+				break;
+			}
+		}
+		if (shouldSwitch) {
+			rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+			switching = true;
+			// Each time a switch is done, increase this count by 1:
+			switchcount++;
+		}
+	}
+}
