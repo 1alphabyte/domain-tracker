@@ -5,7 +5,8 @@ import whoiser from "whoiser"
 
 const db = new Database("./db.sqlite");
 
-function checkAuth(req) {
+
+function checkAuth(req) {// Checks if the user is authenticated using a Cookie
 	let token = req.headers.get("Cookie");
 	if (!token) 
 		return null;
@@ -20,48 +21,64 @@ function checkAuth(req) {
 	return session;
 }
 
-const server = Bun.serve({
+
+const server = Bun.serve({ // make a new server using Bun serve
 	async fetch(req) {
+		// Get the request path
 		let pathArr = req.url.replace(/https?:\/\//, "").split("/");
+		// get the last part of the request path
 		let path = pathArr[2];
+		// switch statement to handle different routes
 		switch (path) {
+			// Handle login route	
 			case "login": {
+				// make sure the method is POST
 				if (req.method != "POST") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "POST" } });
 				}
-				if (!req.body) {
+				// make sure the request has a body
+				if (!req.body)
 					return new Response("Bad request", { status: 400 });
-				}
+				// get the request body from the client
 				let body = await req.json();
+				// make sure the body has a username and password
 				if (!body.username || !body.password) {
 					return new Response("Bad request", { status: 400 });
 				}
+				// get the user from the database
 				let user = db.query("SELECT * FROM users WHERE username = ?1")
 					.get(body.username);
 				let validLogin;
+				// make sure the user exists
 				if (!user) {
 					validLogin = false;
 				} else {
+					// verify the password
 					validLogin = await Bun.password.verify(body.password, user.password);
 				}
+				// if the login is invalid, return a 403
 				if (!validLogin) {
 					return new Response("Invalid username or password", { status: 403 })
 				}
 
 				// Create new session
 				let q = db.query("INSERT INTO sessions (token, userId, expires) VALUES (?1, ?2, ?3) RETURNING token").get(crypto.randomUUID(), user.id, Date.now() + (48 * 60 * 60 * 1000));		
+				// send back the cookie as a header
 				return new Response("Session created", { status: 201, headers: { "Set-Cookie": `auth=${q.token}; Max-Age=172800; Path=/; httpOnly; SameSite=Lax` } });
 			}
 			case "get": {
 				if (req.method != "GET") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET" } });
 				}
+				// make sure the user is authenticated
 				if (!checkAuth(req)) 
 					return new Response("Unauthorized", { status: 401 });
+				// get all the domains from the database
 				let q = db.query("SELECT * FROM domains").all();
+				// send the domains back to the client
 				return new Response(JSON.stringify(q), { headers: { "Content-Type": "application/json" } });
 			}
-			case "edit": {
+			case "edit": { // gets the request body and updates the domain in the database
 				if (req.method != "POST")
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET" } });
 				if (!checkAuth(req)) 
@@ -80,7 +97,7 @@ const server = Bun.serve({
 				}
 				return new Response(null, { status: 200 });
 			}
-			case "add": {
+			case "add": { // add a new domain to the database and do a whois lookup to get additions info
 				if (req.method != "POST") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "POST" } });
 				}
@@ -93,16 +110,20 @@ const server = Bun.serve({
 				let body = await req.json();
 				if (!body.domain || !body.clientId)
 					return new Response("Missing domain or client ID", { status: 400 });
+				// make variables to store domain data from WhoIS
 				let exp, ns, reg, raw;
 				try {
 					// All gTLDs are supported by RDAP
 					// RDAP is the preferred method for getting domain data as it is machine readable
 					let rdapData = await rdapClient.rdapClient(body.domain);
+					// parse data into correct format (UNIX)
 					exp = new Date(rdapData.events.filter((event) => event.eventAction === "expiration")[0].eventDate).getTime();
+					// parse data using map and other techniques
 					ns = rdapData.nameservers.map((ns) => ns.ldhName).toString();
 					reg = rdapData.entities[0].vcardArray[1][1][3]
 					raw = JSON.stringify(rdapData);
 				} catch (e) {
+					// handle error by falling back to WhoIS
 					console.error(e);
 					console.info("Trying whoiser", body.domain);
 					try {
@@ -142,7 +163,9 @@ const server = Bun.serve({
 				let session = checkAuth(req);
 				if (!session) 
 					return new Response("Unauthorized", { status: 401 });
+				// get all the clients from the database
 				let q = db.query("SELECT * FROM clients").all();
+				// send the clients back to the client
 				return new Response(JSON.stringify(q), { headers: { "Content-Type": "application/json" } });
 			}
 			case "clientAdd": {
@@ -154,12 +177,12 @@ const server = Bun.serve({
 					return new Response("Unauthorized", { status: 401 });
 				if (!req.body) 
 					return new Response("Missing body", { status: 400 });
-				
 				let body = await req.json();
 				if (!body.name)
 					return new Response("Missing name", { status: 400 });
 				let q = db.query("INSERT INTO clients (name) VALUES (?1);")
 					.run(body.name).lastInsertRowid;
+				// send the new client ID back to the client
 				return new Response(q, { status: 201 });
 			}
 			case "delete": {
@@ -201,7 +224,9 @@ const server = Bun.serve({
 				return new Response(null, { status: 200 });
 			}
 			default: {
+				// remove host
 				pathArr.shift()
+				// send back 404 error
 				return new Response(`Page: /${pathArr.join("/")}, Not found`, { status: 404 });
 			}
 		}
