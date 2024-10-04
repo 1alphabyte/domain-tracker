@@ -66,7 +66,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				// send back the cookie as a header
 				return new Response("Session created", { status: 201, headers: { "Set-Cookie": `auth=${q.token}; Max-Age=172800; Path=/; httpOnly; SameSite=Lax` } });
 			}
-			case "get": {
+			case "get": { // send all domains and associated data to the client
 				if (req.method != "GET") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET" } });
 				}

@@ -5,6 +5,7 @@ const results: CsvRow[] = [];
 const csvFilePath = './domains.csv';
 let clients: string[] = [];
 let apiBaseUrl = 'http://54.218.183.201:81';
+let authCookie = "auth=10876651-f22a-4629-81bc-73fa24f84d77"
 fs.createReadStream(csvFilePath)
 	.pipe(csv())
 	.on('data', (data: CsvRow) => results.push(data))
@@ -19,20 +20,30 @@ fs.createReadStream(csvFilePath)
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Cookie': 'auth=2544a154-faa1-454c-bef1-45947014d262'
+					'Cookie': authCookie
 				},
 				body: JSON.stringify({ name: c })
 			});
 		});
+		let currDomains;
 		fetch(`${apiBaseUrl}/api/clientList`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
-				'Cookie': 'auth=2544a154-faa1-454c-bef1-45947014d262'
+				'Cookie': authCookie
 			}
 		}).then((res) => res.json()).then((data) => {
 			(async () => {
+				currDomains = await fetch(`${apiBaseUrl}/api/get`, {
+					headers: {
+						'Content-Type': 'application/json',
+						'Cookie': authCookie
+					}}).then(r => r.json());
+					console.log(results.length);
 				for (const r of results) {
+					if (currDomains.filter((d: { domain: string }) => d.domain === r.domain).length != 0) {
+						continue;
+					}
 					let cId: number = data.filter((d: { name: string }) => d.name === r.Client);
 					let body: String = JSON.stringify({
 						domain: r["domain"],
@@ -44,7 +55,7 @@ fs.createReadStream(csvFilePath)
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'Cookie': 'auth=2544a154-faa1-454c-bef1-45947014d262'
+							'Cookie': authCookie
 						},
 						body: body
 					}).then((res) => {

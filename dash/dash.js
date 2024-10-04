@@ -136,7 +136,7 @@ async function loadDomains() {
 
 function main() {
 	if (window.matchMedia("(max-width: 850px)").matches) {
-		document.querySelector("body").innerHTML = "<h1>Screen too small</h1>";
+		document.querySelector("body").innerHTML = "<h1>Your screen size doesn't meet the minimum requirements</h1>";
 		window.addEventListener("resize", () => {
 			if (window.matchMedia("(min-width: 850px)").matches) {
 				location.reload();
