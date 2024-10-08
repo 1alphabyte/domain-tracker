@@ -36,7 +36,7 @@ db.query("SELECT * FROM sessions").all().forEach((session) => {
 				if (rdapData.nameservers)
 					ns = rdapData.nameservers.map((ns) => ns.ldhName).toString();
 				if (rdapData.entities)
-					reg = rdapData.entities[0].vcardArray[1][1][3]
+					reg = rdapData.entities.filter((r) => r.roles[0] === "registrar")[0].vcardArray[1][1][3]
 				raw = JSON.stringify(rdapData);
 			} catch (e) {
 				console.error(e);

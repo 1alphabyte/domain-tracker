@@ -120,7 +120,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 					exp = new Date(rdapData.events.filter((event) => event.eventAction === "expiration")[0].eventDate).getTime();
 					// parse data using map and other techniques
 					ns = rdapData.nameservers.map((ns) => ns.ldhName).toString();
-					reg = rdapData.entities[0].vcardArray[1][1][3]
+					reg = rdapData.entities.filter((r) => r.roles[0] === "registrar")[0].vcardArray[1][1][3];
 					raw = JSON.stringify(rdapData);
 				} catch (e) {
 					// handle error by falling back to WhoIS
