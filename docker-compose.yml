@@ -23,6 +23,7 @@ services:
       - INIT_USER=admin
       - SMTP_USER=
       - SMTP_PASSWORD=
+      - EMAIL_FOR_EXPIRING_DOMAINS=
     container_name: domaintrk_backend
     restart: unless-stopped
 

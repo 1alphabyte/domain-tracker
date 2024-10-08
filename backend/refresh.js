@@ -1,5 +1,7 @@
 import { Database } from "bun:sqlite";
 import nodemailer from "nodemailer";
+import rdapClient from "rdap-client"
+import whoiser from "whoiser"
 
 const db = new Database("./db.sqlite");
 
@@ -83,7 +85,7 @@ if (expiringSoon.length != 0) {
 
 	transporter.sendMail({
 		from: "domaintrk@cbt.io",
-		to: "helpdesk@cbt.io",
+		to: process.env.EMAIL_FOR_EXPIRING_DOMAINS,
 		subject: "Domains expiring soon",
 		text: "    ,---,                        ____                                              \n  .'  .' `\\                    ,'  , `.             ,--,                           \n,---.'     \\    ,---.       ,-+-,.' _ |           ,--.'|         ,---,             \n|   |  .`\\  |  '   ,'\\   ,-+-. ;   , ||           |  |,      ,-+-. /  | .--.--.    \n:   : |  '  | /   /   | ,--.'|'   |  || ,--.--.   `--'_     ,--.'|'   |/  /    '   \n|   ' '  ;  :.   ; ,. :|   |  ,', |  |,/       \\  ,' ,'|   |   |  ,\"' |  :  /`./   \n'   | ;  .  |'   | |: :|   | /  | |--'.--.  .-. | '  | |   |   | /  | |  :  ;_     \n|   | :  |  ''   | .; :|   : |  | ,    \\__\\/: . . |  | :   |   | |  | |\\  \\    `.  \n'   : | /  ; |   :    ||   : |  |/     ,\" .--.; | '  : |__ |   | |  |/  `----.   \\ \n|   | '` ,/   \\   \\  / |   | |`-'     /  /  ,.  | |  | '.'||   | |--'  /  /`--'  / \n;   :  .'      `----'  |   ;/        ;  :   .'   \\;  :    ;|   |/     '--'.     /  \n|   ,.'                '---'         |  ,     .-./|  ,   / '---'        `--'---'   \n'---'                                 `--`---'     ---`-'                          \nexpiring soon\n" 
 		+ expiringSoon.map((d) => {

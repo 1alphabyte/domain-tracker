@@ -19,7 +19,7 @@ async function loadDomains() {
 	let clients = await fetch("/api/clientList").then((res) => res.ok ? res.json() : null);
 
 	if (!domains || !clients) {
-		document.querySelector("body").innerHTML = "<h1>An error occured and Domain tracker is unable to proceed</h1><br /><h2>Please try again later</h2><br /><p>See the browser console for more information</p>";
+		document.querySelector("body").innerHTML = "<h1>An error occurred and Domain tracker is unable to proceed</h1><br /><h2>Please try again later</h2><br /><p>See the browser console for more information</p>";
 		return;
 	}
 	clients.forEach((c) => {
@@ -296,6 +296,12 @@ function sortTableDate(columnIndex) {
 	} else {
 		document.getElementById(`tableHeader${columnIndex}`).classList = "arrow down";
 	}
+	// Reset other headers
+	document.querySelectorAll(".arrow").forEach((e) => {
+		if (e !== tableHeader) {
+			e.classList = "arrow left";
+		}
+	});
 
 	rows.sort((a, b) => {
 		 const x = new Date(a.cells[columnIndex].innerText);
