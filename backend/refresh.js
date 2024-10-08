@@ -30,7 +30,7 @@ db.query("SELECT * FROM sessions").all().forEach((session) => {
 			try {
 				// All gTLDs are supported by RDAP
 				// RDAP is the preferred method for getting domain data as it is machine readable
-				let rdapData = await rdapClient.rdapClient(body.domain);
+				let rdapData = await rdapClient.rdapClient(domain.domain);
 				if (rdapData.events)
 					exp = new Date(rdapData.events.filter((event) => event.eventAction === "expiration")[0].eventDate).getTime();
 				if (rdapData.nameservers)
@@ -40,9 +40,9 @@ db.query("SELECT * FROM sessions").all().forEach((session) => {
 				raw = JSON.stringify(rdapData);
 			} catch (e) {
 				console.error(e);
-				console.info("Trying whoiser", body.domain);
+				console.info("Trying whoiser", domain.domain);
 				try {
-					let whoisData = await whoiser.domain(body.domain, { follow: 1, ignorePrivacy: false });
+					let whoisData = await whoiser.domain(domain.domain, { follow: 1, ignorePrivacy: false });
 					whoisData = Object.values(whoisData)[0];
 					exp = new Date(whoisData["Expiry Date"]).getTime();
 					ns = whoisData["Name Server"].toString();
@@ -50,7 +50,7 @@ db.query("SELECT * FROM sessions").all().forEach((session) => {
 					raw = JSON.stringify(whoisData);
 				} catch (e) {
 					console.error(e);
-					console.info("Error getting domain", body.domain);
+					console.info("Error getting domain", domain.domain);
 					continue;
 				}
 			}

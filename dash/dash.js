@@ -257,68 +257,55 @@ function main() {
 main();
 
 
-
-
-function sortTable(n) {
-	let rows, i, x, y, shouldSwitch, dir, switchcount = 0;
-	let switching = true;
-	dir = "asc";
-	while (switching) {
-		switching = false;
-		rows = table.rows;
-		for (i = 1; i < (rows.length - 1); i++) {
-			shouldSwitch = false;
-			x = rows[i].getElementsByTagName("TD")[n];
-			y = rows[i + 1].getElementsByTagName("TD")[n];
-			if (dir == "asc") {
-				if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-					// If so, mark as a switch and break the loop:
-					shouldSwitch = true;
-					break;
-				}
-			} else if (dir == "desc") {
-				if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-					// If so, mark as a switch and break the loop:
-					shouldSwitch = true;
-					break;
-				}
-			}
-		}
-		if (shouldSwitch) {
-			rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-			switching = true;
-			// Each time a switch is done, increase this count by 1:
-			switchcount++;
-		} else {
-			if (switchcount == 0 && dir == "asc") {
-				dir = "desc";
-				switching = true;
-			}
-		}
+function sortTable(columnIndex) {
+	const rows = Array.from(table.rows).slice(1); // Exclude header row
+	let direction = table.getAttribute('data-sort-direction') === 'asc' ? 'desc' : 'asc';
+	table.setAttribute('data-sort-direction', direction);
+	let tableHeader = document.getElementById(`tableHeader${columnIndex}`);
+	if (direction === 'asc') {
+		tableHeader.classList = "arrow up";
+	} else {
+		tableHeader.classList = "arrow down";
 	}
+	// Reset other headers
+	document.querySelectorAll(".arrow").forEach((e) => {
+		if (e !== tableHeader) {
+			e.classList = "arrow left";
+		}
+	});
+
+	rows.sort((a, b) => {
+		 const x = a.cells[columnIndex].innerText.toLowerCase();
+		 const y = b.cells[columnIndex].innerText.toLowerCase();
+		 if (direction === 'asc') {
+			  return x > y ? 1 : x < y ? -1 : 0;
+		 } else {
+			  return x < y ? 1 : x > y ? -1 : 0;
+		 }
+	});
+
+	rows.forEach(row => table.appendChild(row));
 }
 
-
-function sortTableDate(n) {
-	let rows, i, x, y, shouldSwitch, switchcount = 0;
-	let switching = true;
-	while (switching) {
-		switching = false;
-		rows = table.rows;
-		for (i = 1; i < (rows.length - 1); i++) {
-			shouldSwitch = false;
-			x = rows[i].getElementsByTagName("TD")[n];
-			y = rows[i + 1].getElementsByTagName("TD")[n];
-			if (new Date(x.innerHTML).getTime() > new Date(y.innerHTML).getTime()) {
-				shouldSwitch = true;
-				break;
-			}
-		}
-		if (shouldSwitch) {
-			rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-			switching = true;
-			// Each time a switch is done, increase this count by 1:
-			switchcount++;
-		}
+function sortTableDate(columnIndex) {
+	const rows = Array.from(table.rows).slice(1); // Exclude header row
+	let direction = table.getAttribute('data-sort-direction') === 'asc' ? 'desc' : 'asc';
+	table.setAttribute('data-sort-direction', direction);
+	if (direction === 'asc') {
+		document.getElementById(`tableHeader${columnIndex}`).classList = "arrow up";
+	} else {
+		document.getElementById(`tableHeader${columnIndex}`).classList = "arrow down";
 	}
+
+	rows.sort((a, b) => {
+		 const x = new Date(a.cells[columnIndex].innerText);
+		 const y = new Date(b.cells[columnIndex].innerText);
+		 if (direction === 'asc') {
+			  return x - y;
+		 } else {
+			  return y - x;
+		 }
+	});
+
+	rows.forEach(row => table.appendChild(row));
 }
