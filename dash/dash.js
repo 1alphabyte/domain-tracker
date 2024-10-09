@@ -291,10 +291,11 @@ function sortTableDate(columnIndex) {
 	const rows = Array.from(table.rows).slice(1); // Exclude header row
 	let direction = table.getAttribute('data-sort-direction') === 'asc' ? 'desc' : 'asc';
 	table.setAttribute('data-sort-direction', direction);
+	let tableHeader = document.getElementById(`tableHeader${columnIndex}`);
 	if (direction === 'asc') {
-		document.getElementById(`tableHeader${columnIndex}`).classList = "arrow up";
+		tableHeader.classList = "arrow up";
 	} else {
-		document.getElementById(`tableHeader${columnIndex}`).classList = "arrow down";
+		tableHeader.classList = "arrow down";
 	}
 	// Reset other headers
 	document.querySelectorAll(".arrow").forEach((e) => {
