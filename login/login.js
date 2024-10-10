@@ -10,7 +10,7 @@ if (localStorage.getItem("auth")) {
 			body: JSON.stringify({ username: input.value, password: password.value })
 		}).then(res => {
 			if (res.ok) {
-				window.location.href = "/dash/";
+				window.location.assign("/dash/");
 				localStorage.setItem("auth", true);
 			} else if (res.status === 403) {
 				alert("Invalid username or password");
@@ -19,4 +19,5 @@ if (localStorage.getItem("auth")) {
 			}
 		});
 	});
+	console.info("Made with ❤️ by @1alphabyte https://github.com/1alphabyte");
 }

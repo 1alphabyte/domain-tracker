@@ -33,3 +33,15 @@ input[type=submit]:hover {
 	background-color: #e5e5e5;
 	color: #4379F2;
 }
+
+footer {
+	padding: 5px;
+	/* top | left and right | bottom */
+	margin: 0 .5rem .55rem;
+	background-color: #43494c;
+	color: #e8e6e3;
+	border-radius: .6rem;
+	position: fixed;
+	bottom: 0;
+	text-align: center;
+}

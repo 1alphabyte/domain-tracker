@@ -17,7 +17,7 @@ services:
   backend:
     image: ghcr.io/1alphabyte/domain-tracker:backend
     volumes:
-      - data:/usr/src/app
+      - ./data:/data/
     environment:
       - INIT_PASSWORD=admin123
       - INIT_USER=admin
@@ -26,6 +26,3 @@ services:
       - EMAIL_FOR_EXPIRING_DOMAINS=
     container_name: domaintrk_backend
     restart: unless-stopped
-
-volumes:
-  data:

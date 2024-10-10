@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 import rdapClient from "rdap-client"
 import whoiser from "whoiser"
 
-const db = new Database("./db.sqlite");
+const db = new Database(process.env.DB_PATH || "./db.sqlite");
 
 let transporter = nodemailer.createTransport({
 	host: "send.smtp.com",
@@ -15,11 +15,18 @@ let transporter = nodemailer.createTransport({
 	},
 });
 
+let c;
+
 db.query("SELECT * FROM sessions").all().forEach((session) => {
 	if (session.expires < Date.now()) {
 		db.query("DELETE FROM sessions WHERE token = ?1").run(session.token);
+		c++;
 	}
 });
+
+if (!isNaN(c)) {
+	console.info(`Deleted ${c} expired session${c === 1 ? "" : "s"}`);
+}
 
 const domains = db.query("SELECT * FROM domains").all();
 for (const domain of domains) {

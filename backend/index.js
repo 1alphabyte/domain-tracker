@@ -3,7 +3,7 @@ import Bun from "bun";
 import rdapClient from "rdap-client"
 import whoiser from "whoiser"
 
-const db = new Database("./db.sqlite");
+const db = new Database(process.env.DB_PATH || "./db.sqlite");
 
 
 function checkAuth(req) {// Checks if the user is authenticated using a Cookie
