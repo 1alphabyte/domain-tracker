@@ -33,7 +33,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 			// Handle login route	
 			case "login": {
 				// make sure the method is POST
-				if (req.method != "POST") {
+				if (req.method !== "POST") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "POST" } });
 				}
 				// make sure the request has a body
@@ -67,7 +67,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				return new Response("Session created", { status: 201, headers: { "Set-Cookie": `auth=${q.token}; Max-Age=172800; Path=/; httpOnly; SameSite=Lax` } });
 			}
 			case "get": { // send all domains and associated data to the client
-				if (req.method != "GET") {
+				if (req.method !== "GET") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET" } });
 				}
 				// make sure the user is authenticated
@@ -79,7 +79,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				return new Response(JSON.stringify(q), { headers: { "Content-Type": "application/json" } });
 			}
 			case "edit": { // gets the request body and updates the domain in the database
-				if (req.method != "POST")
+				if (req.method !== "POST")
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET" } });
 				if (!checkAuth(req)) 
 					return new Response("Unauthorized", { status: 401 });
@@ -98,7 +98,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				return new Response(null, { status: 200 });
 			}
 			case "add": { // add a new domain to the database and do a whois lookup to get additions info
-				if (req.method != "POST") {
+				if (req.method !== "POST") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "POST" } });
 				}
 				let session = checkAuth(req);
@@ -157,7 +157,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				return new Response(q, { status: 201 });
 			}
 			case "clientList": {
-				if (req.method != "GET") {
+				if (req.method !== "GET") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET" } });
 				}
 				let session = checkAuth(req);
@@ -169,7 +169,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				return new Response(JSON.stringify(q), { headers: { "Content-Type": "application/json" } });
 			}
 			case "clientAdd": {
-				if (req.method != "POST") {
+				if (req.method !== "POST") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "POST" } });
 				}
 				let session = checkAuth(req);
@@ -186,7 +186,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				return new Response(q, { status: 201 });
 			}
 			case "delete": {
-				if (req.method != "DELETE") 
+				if (req.method !== "DELETE")
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "DELETE" } });
 				if (!checkAuth(req)) 
 					return new Response("Unauthorized", { status: 401 });
@@ -202,7 +202,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				return new Response(null, { status: 200 });
 			}
 			case "deleteClient": {
-				if (req.method != "DELETE") 
+				if (req.method !== "DELETE")
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "DELETE" } });
 				if (!checkAuth(req)) 
 					return new Response("Unauthorized", { status: 401 });

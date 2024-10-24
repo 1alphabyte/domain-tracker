@@ -79,12 +79,12 @@ let expiringSoon = [];
 db.query("SELECT * FROM domains").all().forEach((domain) => {
 	let domainDate = new Date(domain.expiration).getTime();
 	let date = new Date().getTime() + (25 * 24 * 60 * 60 * 1000);
-	if (domainDate < date) {
+	if (domainDate <= date) {
 		expiringSoon.push(domain);
 	}
 });
 
-if (expiringSoon.length != 0) {
+if (expiringSoon.length !== 0) {
 
 	const currentDate = new Date();
 
@@ -92,12 +92,17 @@ if (expiringSoon.length != 0) {
 		from: "domaintrk@cbt.io",
 		to: process.env.EMAIL_FOR_EXPIRING_DOMAINS,
 		subject: "Domains expiring soon",
-		text: "    ,---,                        ____                                              \n  .'  .' `\\                    ,'  , `.             ,--,                           \n,---.'     \\    ,---.       ,-+-,.' _ |           ,--.'|         ,---,             \n|   |  .`\\  |  '   ,'\\   ,-+-. ;   , ||           |  |,      ,-+-. /  | .--.--.    \n:   : |  '  | /   /   | ,--.'|'   |  || ,--.--.   `--'_     ,--.'|'   |/  /    '   \n|   ' '  ;  :.   ; ,. :|   |  ,', |  |,/       \\  ,' ,'|   |   |  ,\"' |  :  /`./   \n'   | ;  .  |'   | |: :|   | /  | |--'.--.  .-. | '  | |   |   | /  | |  :  ;_     \n|   | :  |  ''   | .; :|   : |  | ,    \\__\\/: . . |  | :   |   | |  | |\\  \\    `.  \n'   : | /  ; |   :    ||   : |  |/     ,\" .--.; | '  : |__ |   | |  |/  `----.   \\ \n|   | '` ,/   \\   \\  / |   | |`-'     /  /  ,.  | |  | '.'||   | |--'  /  /`--'  / \n;   :  .'      `----'  |   ;/        ;  :   .'   \\;  :    ;|   |/     '--'.     /  \n|   ,.'                '---'         |  ,     .-./|  ,   / '---'        `--'---'   \n'---'                                 `--`---'     ---`-'                          \nexpiring soon\n"
-			+ expiringSoon.map((d) => {
+		html: "<h3>The following domain(s) are expiring within the next 25 days</h3><p>Click a domain to view it in Domain Tracker</p><ul>" +
+			expiringSoon.map((d) => {
 				const expirationDate = new Date(d.expiration);
+				let days = Math.ceil((expirationDate - currentDate) / (1000 * 60 * 60 * 24));
+				let dayString = days;
+				if (days <= 10) {
+					dayString = `<b>${days}</b>`
+				}
 
-				return `${d.domain} is expiring on ${expirationDate.toLocaleDateString()} (in ${Math.ceil((expirationDate - currentDate) / (1000 * 60 * 60 * 24))} days)`;
-			}).join("\n")
+				return `<li><a href="https://ec2-54-218-183-201.us-west-2.compute.amazonaws.com:81/dash/?q=${d.domain}">${d.domain}</a> is expiring on ${expirationDate.toLocaleDateString()} (in ${dayString} days)</li>`;
+			}).join("\n") + "</ul><br /><footer style='font-size: smaller;'>Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.</footer>"
 	}, (err, info) => {
 		if (err) {
 			console.error(err);

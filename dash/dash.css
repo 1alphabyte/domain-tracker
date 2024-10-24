@@ -104,6 +104,12 @@ header {
 	color: #fbff00;
 }
 
+#searchContainer {
+	  position: absolute;
+	  right: 0px;
+	  width: 250px;
+}
+
 .arrow {
 	border: solid #fff;
 	border-width: 0 3px 3px 0;

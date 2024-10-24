@@ -64,7 +64,7 @@ async function loadDomains() {
 		notes.textContent = d.notes ? "View" : "None";
 
 		if (d.notes) {
-			notes.className = "rawDataBtn";	
+			notes.className = "rawDataBtn";
 			notes.dataset.id = d.id;
 			notes.addEventListener("click", (e) => {
 				let id = e.target.dataset.id;
@@ -74,7 +74,7 @@ async function loadDomains() {
 				let pre = document.getElementById("rawData");
 				pre.textContent = d;
 				diag.showModal();
-			});	
+			});
 		}
 
 		raw.addEventListener("click", (e) => {
@@ -149,7 +149,13 @@ function main() {
 			location.reload();
 		}
 	});
-	loadDomains();
+	loadDomains().then(() => {
+		let searchParms = new URLSearchParams(location.search);
+		if (searchParms.has("q") && searchParms.get("q").length > 0) {
+			search.value = searchParms.get("q");
+			search.dispatchEvent(new Event('input'));
+		}
+	});
 	document.getElementById("addDForm").addEventListener("submit", (e) => {
 		e.preventDefault();
 		let clientId = document.getElementById("client").value;
@@ -231,6 +237,16 @@ function main() {
 	document.getElementById("delC").addEventListener("click", () => {
 		document.getElementById("delCDiag").showModal();
 	});
+	let search = document.getElementById("searchInput");
+	search.addEventListener("input", (e) => {
+		const rows = Array.from(table.rows).slice(1); // Exclude header row
+		const searchTerm = e.target.value.toLowerCase();
+
+		rows.forEach((row) => {
+			const cellText = row.cells[0].firstChild.textContent.toLowerCase();
+			row.hidden = !cellText.includes(searchTerm);
+		});
+	});
 	document.getElementById("delCBtn").addEventListener("click", () => {
 		let id = document.getElementById("delCSel").value;
 		if (id === "null") {
@@ -275,13 +291,13 @@ function sortTable(columnIndex) {
 	});
 
 	rows.sort((a, b) => {
-		 const x = a.cells[columnIndex].innerText.toLowerCase();
-		 const y = b.cells[columnIndex].innerText.toLowerCase();
-		 if (direction === 'asc') {
-			  return x > y ? 1 : x < y ? -1 : 0;
-		 } else {
-			  return x < y ? 1 : x > y ? -1 : 0;
-		 }
+		const x = a.cells[columnIndex].innerText.toLowerCase();
+		const y = b.cells[columnIndex].innerText.toLowerCase();
+		if (direction === 'asc') {
+			return x > y ? 1 : x < y ? -1 : 0;
+		} else {
+			return x < y ? 1 : x > y ? -1 : 0;
+		}
 	});
 
 	rows.forEach(row => table.appendChild(row));
@@ -305,13 +321,13 @@ function sortTableDate(columnIndex) {
 	});
 
 	rows.sort((a, b) => {
-		 const x = new Date(a.cells[columnIndex].innerText);
-		 const y = new Date(b.cells[columnIndex].innerText);
-		 if (direction === 'asc') {
-			  return x - y;
-		 } else {
-			  return y - x;
-		 }
+		const x = new Date(a.cells[columnIndex].innerText);
+		const y = new Date(b.cells[columnIndex].innerText);
+		if (direction === 'asc') {
+			return x - y;
+		} else {
+			return y - x;
+		}
 	});
 
 	rows.forEach(row => table.appendChild(row));
