@@ -64,7 +64,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				// Create new session
 				let q = db.query("INSERT INTO sessions (token, userId, expires) VALUES (?1, ?2, ?3) RETURNING token").get(crypto.randomUUID(), user.id, Date.now() + (48 * 60 * 60 * 1000));		
 				// send back the cookie as a header
-				return new Response("Session created", { status: 201, headers: { "Set-Cookie": `auth=${q.token}; Max-Age=172800; Path=/; httpOnly; SameSite=Lax` } });
+				return new Response("Session created", { status: 201, headers: { "Set-Cookie": `auth=${q.token}; Max-Age=172800; Path=/; httpOnly; SameSite=Lax; Secure` } });
 			}
 			case "get": { // send all domains and associated data to the client
 				if (req.method !== "GET") {
@@ -97,7 +97,7 @@ const server = Bun.serve({ // make a new server using Bun serve
 				}
 				return new Response(null, { status: 200 });
 			}
-			case "add": { // add a new domain to the database and do a whois lookup to get additions info
+			case "add": { // add a new domain to the database and do a whois lookup to get additional info
 				if (req.method !== "POST") {
 					return new Response("Method not allowed", { status: 405, headers: { "Allow": "POST" } });
 				}

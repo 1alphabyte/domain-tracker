@@ -1,7 +1,9 @@
 #!/bin/sh
 
-bun run migration.ts
-echo "crond -l 2
-bun run index.js" > /usr/src/app/init.sh
+# Create database if not exists
+if [ ! -f $DB_PATH ]; then
+	bun run migration.ts
+fi
+
 crond -l 2
 bun run index.js

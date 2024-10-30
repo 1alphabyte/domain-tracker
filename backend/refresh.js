@@ -15,7 +15,7 @@ let transporter = nodemailer.createTransport({
 	},
 });
 
-let c;
+let c = 0;
 
 db.query("SELECT * FROM sessions").all().forEach((session) => {
 	if (session.expires < Date.now()) {
@@ -24,7 +24,7 @@ db.query("SELECT * FROM sessions").all().forEach((session) => {
 	}
 });
 
-if (!isNaN(c)) {
+if (c > 0) {
 	console.info(`Deleted ${c} expired session${c === 1 ? "" : "s"}`);
 }
 
@@ -86,7 +86,7 @@ db.query("SELECT * FROM domains").all().forEach((domain) => {
 
 if (expiringSoon.length !== 0) {
 
-	const currentDate = new Date();
+	const currentDate = Date.now();
 
 	transporter.sendMail({
 		from: "domaintrk@cbt.io",
@@ -94,8 +94,8 @@ if (expiringSoon.length !== 0) {
 		subject: "Domains expiring soon",
 		html: "<h3>The following domain(s) are expiring within the next 25 days</h3><p>Click a domain to view it in Domain Tracker</p><ul>" +
 			expiringSoon.map((d) => {
-				const expirationDate = new Date(d.expiration);
-				let days = Math.ceil((expirationDate - currentDate) / (1000 * 60 * 60 * 24));
+				const expirationDate = new Date(d.expiration).getTime();
+				let days = Math.round((expirationDate - currentDate) / (1000 * 3600 * 24));
 				let dayString = days;
 				if (days <= 10) {
 					dayString = `<b>${days}</b>`

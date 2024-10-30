@@ -1,6 +1,6 @@
 # Domain Tracker
-A simple tool to track your domains and their expiration dates.
+A simple tool to track your domain's expiration dates.
 
 ## Usage
 To get started simply use the included `docker-compose.yml`
-Some code may require modification for external use. (Non-CBT)
+Some code modification **required** for external use. (Non-CBT)

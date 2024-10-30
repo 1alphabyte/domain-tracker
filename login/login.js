@@ -3,15 +3,13 @@ if (localStorage.getItem("auth")) {
 } else {
 	document.querySelector("form").addEventListener("submit", (e) => {
 		e.preventDefault();
-		const input = document.getElementById("username");
-		const password = document.getElementById("password");
 		fetch("/api/login", {
 			method: "POST",
-			body: JSON.stringify({ username: input.value, password: password.value })
+			body: JSON.stringify({ username: document.getElementById("username").value, password: document.getElementById("password").value })
 		}).then(res => {
 			if (res.ok) {
-				window.location.assign("/dash/");
 				localStorage.setItem("auth", true);
+				location.assign("/dash/");
 			} else if (res.status === 403) {
 				alert("Invalid username or password");
 			} else {

@@ -149,6 +149,7 @@ function main() {
 			location.reload();
 		}
 	});
+	let search = document.getElementById("searchInput");
 	loadDomains().then(() => {
 		let searchParms = new URLSearchParams(location.search);
 		if (searchParms.has("q") && searchParms.get("q").length > 0) {
@@ -237,7 +238,6 @@ function main() {
 	document.getElementById("delC").addEventListener("click", () => {
 		document.getElementById("delCDiag").showModal();
 	});
-	let search = document.getElementById("searchInput");
 	search.addEventListener("input", (e) => {
 		const rows = Array.from(table.rows).slice(1); // Exclude header row
 		const searchTerm = e.target.value.toLowerCase();

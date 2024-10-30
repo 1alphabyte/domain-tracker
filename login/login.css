@@ -4,7 +4,6 @@ form {
 	justify-items: center;
 }
 
-div,
 h1 {
 	display: flex;
 	justify-content: center;
@@ -13,24 +12,30 @@ h1 {
 
 input {
 	border-radius: 7px;
-	border: 1px solid #ccc;
 	margin-top: 5px;
-	width: 300px;
+	width: 200px;
+	padding: 10px;
+	color: #e5e5e5;
+	border: none;
+	background-color: #262a2b;
 }
 
 input[type=submit] {
 	border-radius: 7px;
-	border: none;
 	margin-top: 5px;
 	background-color: #4379F2;
-	border: 1px solid #4379F2;
+	border: 2px solid #4379F2;
 	color: #e5e5e5;
+	transition: .3s;
 	padding: 10px 15px;
 }
 
 input[type=submit]:hover {
 	cursor: pointer;
-	background-color: #e5e5e5;
+	font-weight: 900;
+	transform: scale(1.05);
+	transition: .5s;
+	background-color: transparent;
 	color: #4379F2;
 }
 
@@ -44,4 +49,24 @@ footer {
 	position: fixed;
 	bottom: 0;
 	text-align: center;
+}
+
+body {
+	background-color: #121414;
+	color: #e8e6e3;
+}
+
+#inner {
+	background-color: #1a1c1d;
+	width: 30%;
+	height: 300px;
+	padding: 50px;
+	border-radius: 15px;
+}
+
+#outer-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 70vh;
 }

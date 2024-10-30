@@ -4,11 +4,13 @@ form {
 }
 table {
 	width: 100%;
+	border-spacing: 5px;
 }
 
 td {
-	border: 1px solid #ebfff4;
-	border-radius: 5px;
+	border-radius: 7px;
+	padding: 3px;
+	background-color: #2e3337;
 }
 
 #rawDataDiag {
@@ -26,14 +28,14 @@ td {
 	margin: 10px;
 	font-size: large;
 	outline: none;
-	color: #ebfff4;
+	color: #beffdb;
 }
 
 dialog {
 	border: none;
 	border-radius: 10px;
-	background-color: #454d55;
-	color: #ebfff4;
+	background-color: #0c0f12;
+	color: #beffdb;
 }
 
 .rawDataBtn {
@@ -47,8 +49,8 @@ dialog {
 }
 
 body {
-	background-color: #282828;
-	color: #ebfff4;
+	background-color: #181a1b;
+	color: #beffdb;
 }
 
 button, input[type="submit"] {
@@ -57,7 +59,7 @@ button, input[type="submit"] {
 	padding: 5px;
 	margin: 3px;
 	background-color: #29a8e1;
-	color: #fff;
+	color: #beffdb;
 	font-weight: bold;
 }
 
@@ -128,4 +130,12 @@ header {
 
 .down {
 	transform: rotate(45deg);
+}
+
+input, select, textarea {
+	border-radius: 7px;
+	padding: 3px;
+	border: none;
+	background-color: #5d6e7c;
+	color: #fff;
 }
