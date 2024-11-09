@@ -94,8 +94,8 @@ if (expiringSoon.length !== 0) {
 		subject: "Domains expiring soon",
 		html: "<h3>The following domain(s) are expiring within the next 25 days</h3><p>Click a domain to view it in Domain Tracker</p><ul>" +
 			expiringSoon.map((d) => {
-				const expirationDate = new Date(d.expiration).getTime();
-				let days = Math.round((expirationDate - currentDate) / (1000 * 3600 * 24));
+				const expirationDate = new Date(d.expiration);
+				let days = Math.round((expirationDate.getTime() - currentDate) / (1000 * 3600 * 24));
 				let dayString = days;
 				if (days <= 10) {
 					dayString = `<b>${days}</b>`
