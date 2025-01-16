@@ -25,5 +25,10 @@ services:
       - SMTP_USER=
       - SMTP_PASSWORD=
       - EMAIL_FOR_EXPIRING_DOMAINS=
+      - SMTP_HOST=
+      - SMTP_PORT=465
+      - SMTP_TLS=true
+      - DAYS_REMIND_DOMAIN_EXP=25
+      - DAYS_REMIND_TLS_EXP=15
     container_name: domaintrk_backend
     restart: unless-stopped

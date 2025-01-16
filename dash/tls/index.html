@@ -3,28 +3,25 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Dashboard | Domain Tracker</title>
-	<link rel="stylesheet" href="dash.css">
+	<title>Dashboard | TLS tracker</title>
+	<link rel="stylesheet" href="../dash.css">
 	<link rel="icon" type="image/x-icon" href="/images/favicon.webp">
 </head>
 <body>
 	<header>
-		<img id="logo" alt="CBT logo" src="/images/logo.webp" />
-		<h1>Domain Tracker</h1>
+		<h1>TLS Certificate tracker</h1>
 		<div id="searchContainer">
 			<label for="searchInput">Search: </label><input type="text" id="searchInput">
 		</div>
-		<button onclick="location.assign('./tls')">Open TLS crt Tracker</button>
+		<p>A part of <a href="../">Domain Tracker</a></p>
 	</header>
-	<button id="addD">Add Domain</button>
+	<button id="addD">Add Website</button>
 	<button id="AddC">Add Client</button>
-	<button id="delC">Delete Client</button>
 	<table>
 		<tr>
-			<th>Domain <i id="tableHeader0" onclick="sortTable(0)" class="arrow left"></i></th>
+			<th>Common Name <i id="tableHeader0" onclick="sortTable(0)" class="arrow left"></i></th>
 			<th>Expires <i id="tableHeader1" onclick="sortTableDate(1)" class="arrow left"></i></th>
-			<th>Nameservers</th>
-			<th>Registrar <i id="tableHeader3" onclick="sortTable(3)" class="arrow left"></i></th>
+			<th>Authority</th>
 			<th>Client <i id="tableHeader4" onclick="sortTable(4)" class="arrow left"></i></th>
 			<th>Notes</th>
 			<th>Raw Data</th>
@@ -48,6 +45,7 @@
 	<dialog id="AddCDiag">
 		<button class="closeDiag">&#10006;</button>
 		<h3>Add Client</h3>
+		<p>Shared with Domain Tracker</p>
 		<form id="addCForm">
 			<label for="clientName">Client Name</label>
 			<input type="text" id="clientName" required minlength="3" maxlength="255" autofocus />
@@ -59,31 +57,6 @@
 		<h3 id="rawDataDiagHeader"></h3>
 		<pre id="rawData"></pre>
 	</dialog>
-
-	<dialog id="editDDiag">
-		<button class="closeDiag">&#10006;</button>
-		<h3>Edit domain</h3><p id="Edomain"></p>
-		<form id="editDForm">
-			<label for="Eclient">Client</label>
-			<select id="Eclient" required>
-				<option value="null" disabled selected>Select Client</option>
-			</select>
-			<label for="Expiration">Expiration</label>
-			<input type="date" id="Expiration" required />
-			<label for="Nameservers">Nameservers <span id="warning" title="NO SPACES! Be careful editing this!">&#9888;</span></label>
-			<input type="text" id="Nameservers" />
-			<label for="Enotes">Notes</label>
-			<textarea id="Enotes" placeholder="Notes" maxlength="1000" minlength="1"></textarea>
-			<input type="submit" value="Edit"/>
-		</form>
-	</dialog>
-
-	<dialog id="delCDiag">
-		<button class="closeDiag">&#10006;</button>
-		<h3>Delete client</h3>
-		<span id="delCName"></span>
-		<button id="delCBtn">Delete</button>
-	</dialog>
-	<script src="dash.js"></script>
+	<script src="tls.js"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ db.query("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEX
 db.query("CREATE TABLE IF NOT EXISTS sessions (token TEXT NOT NULL, userId INTEGER NOT NULL, expires INTEGER NOT NULL, FOREIGN KEY(userId) REFERENCES users(id))").run();
 db.query("CREATE TABLE IF NOT EXISTS domains (id INTEGER PRIMARY KEY, domain TEXT NOT NULL UNIQUE, expiration INTEGER NOT NULL, nameservers TEXT, registrar TEXT NOT NULL, clientId INTEGER NOT NULL, rawWhoisData TEXT NOT NULL, notes TEXT, FOREIGN KEY(clientId) REFERENCES clients(id))").run();
 db.query("CREATE TABLE IF NOT EXISTS clients (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE)").run();
+db.query("CREATE TABLE IF NOT EXISTS crts (id INTEGER PRIMARY KEY, domain TEXT NOT NULL UNIQUE, commonName TEXT NOT NULL UNIQUE, expiration INTEGER NOT NULL, authority TEXT, clientId INTEGER NOT NULL, rawData TEXT NOT NULL, notes TEXT, FOREIGN KEY(clientId) REFERENCES clients(id))").run();
 
 // load init user
 const password = await Bun.password.hash(process.env.INIT_PASSWORD || "admin123");

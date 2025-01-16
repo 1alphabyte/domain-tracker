@@ -4,7 +4,7 @@ const searchParms = new URLSearchParams(location.search);
 async function loadDomains() {
 	const dropdown = document.getElementById("client");
 
-	let domains = await fetch("/api/get")
+	let domains = await fetch("/api/tlsList")
 		.then((res) => {
 			if (res.ok) {
 				return res.json();
@@ -12,8 +12,8 @@ async function loadDomains() {
 				alert("Unauthorized");
 				if (localStorage.getItem("auth")) localStorage.removeItem("auth");
 				if (searchParms.has("q") && searchParms.get("q").length > 0)
-					location.assign(`/login/?q=${searchParms.get("q")}`);
-				location.assign("/login/");
+					location.assign(`/login/?q=${searchParms.get("q")}&backTo=tls`);
+				location.assign("/login/?backTo=tls");
 			} else {
 				console.error(res);
 				return null;
@@ -30,36 +30,25 @@ async function loadDomains() {
 		option.value = c.id;
 		option.textContent = c.name;
 		dropdown.appendChild(option);
-		document.getElementById("Eclient").appendChild(option.cloneNode(true));
 	});
-	let newDropdown = dropdown.cloneNode(true);
-	newDropdown.id = "delCSel";
-	document.getElementById("delCName").appendChild(newDropdown);
 	sessionStorage.setItem("domains", JSON.stringify(domains));
 	domains.forEach((d) => {
 		let row = document.createElement("tr");
 		let domain = document.createElement("td");
 		let exp = document.createElement("td");
-		let ns = document.createElement("td");
-		let reg = document.createElement("td");
+		let auth = document.createElement("td");
 		let client = document.createElement("td");
 		let notes = document.createElement("td");
 		let raw = document.createElement("td");
 		let deleteBtn = document.createElement("span");
-		let edit = document.createElement("span");
-		edit.className = "editIcon";
-		edit.title = "Edit";
-		edit.dataset.id = d.id;
 		deleteBtn.className = "deleteIcon";
 		deleteBtn.title = "Delete";
 		deleteBtn.dataset.id = d.id;
 
-		domain.textContent = d.domain;
-		domain.appendChild(edit);
+		domain.textContent = d.commonName;
 		domain.appendChild(deleteBtn);
 		exp.textContent = new Date(d.expiration).toLocaleDateString();
-		ns.textContent = d.nameservers.split(",").join(", ");
-		reg.textContent = d.registrar;
+		auth.textContent = d.authority;
 		client.textContent = clients.filter((c) => c.id == d.clientId)[0].name;
 		raw.dataset.id = d.id;
 		raw.textContent = "View";
@@ -82,7 +71,7 @@ async function loadDomains() {
 
 		raw.addEventListener("click", (e) => {
 			let id = e.target.dataset.id;
-			let d = JSON.parse(JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].rawWhoisData);
+			let d = JSON.parse(JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].rawData);
 			let diag = document.getElementById("rawDataDiag");
 			let pre = document.getElementById("rawData");
 			document.getElementById("rawDataDiagHeader").textContent = "Raw Data";
@@ -90,30 +79,14 @@ async function loadDomains() {
 			diag.showModal();
 		});
 
-		edit.addEventListener("click", (e) => {
-			let id = e.target.dataset.id;
-			document.getElementById('editDDiag').showModal();
-			let notes = document.getElementById("Enotes");
-			let clientId = document.getElementById("Eclient");
-			let exp = document.getElementById("Expiration");
-			let nameservers = document.getElementById("Nameservers");
-			let currentDomain = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0];
-			notes.value = currentDomain.notes;
-			clientId.value = currentDomain.clientId;
-			document.getElementById("Edomain").textContent = currentDomain.domain;
-			exp.value = new Date(currentDomain.expiration).toISOString().split("T")[0];
-			nameservers.value = currentDomain.nameservers;
-			document.getElementById("editDForm").dataset.id = id;
-		});
-
 		deleteBtn.addEventListener("click", (e) => {
 			let id = e.target.dataset.id;
 			if (confirm("Are you sure you want to delete this domain?\nTHIS ACTION CANNOT BE UNDONE")) {
-				fetch(`/api/delete/${id}`, {
+				fetch(`/api/tlsDelete/${id}`, {
 					method: "DELETE",
 				}).then((res) => {
 					if (res.ok) {
-						alert("Domain deleted");
+						alert("Website deleted");
 						location.reload();
 					} else {
 						alert("Error deleting domain");
@@ -126,8 +99,7 @@ async function loadDomains() {
 
 		row.appendChild(domain);
 		row.appendChild(exp);
-		row.appendChild(ns);
-		row.appendChild(reg);
+		row.appendChild(auth);
 		row.appendChild(client);
 		row.appendChild(notes);
 		row.appendChild(raw);
@@ -158,6 +130,7 @@ function main() {
 			search.value = searchParms.get("q");
 			search.dispatchEvent(new Event('input'));
 		}
+		document.getElementById("tableHeader1").dispatchEvent(new Event("click"));
 	});
 	document.getElementById("addDForm").addEventListener("submit", (e) => {
 		e.preventDefault();
@@ -170,16 +143,16 @@ function main() {
 		let domain = document.getElementById("domain").value;
 		let notes = document.getElementById("notes").value;
 		document.getElementById("addDForm").reset();
-		fetch("/api/add", {
+		fetch("/api/tlsAddDomain", {
 			method: "POST",
 			body: JSON.stringify({ domain, clientId, notes }),
-		}).then((res) => {
+		}).then(async (res) => {
 			if (res.ok) {
 				alert("Domain added");
 				location.reload();
 			} else if (res.status === 409) {
-				alert("Domain already exists\nDomains can only be added once");
-				location.assign(`./?q=${domain}`);
+				alert("Domain already exists\nThis domain may share a certificate common name with another domain");
+				location.assign(`./?q=${await res.text()}`);
 				
 			} else {
 				alert("Error adding domain");
@@ -220,30 +193,6 @@ function main() {
 		});
 	});
 
-	document.getElementById("editDForm").addEventListener("submit", (e) => {
-		e.preventDefault();
-		fetch("/api/edit", {
-			method: "POST",
-			body: JSON.stringify({
-				id: e.target.dataset.id,
-				clientId: document.getElementById("Eclient").value,
-				expiration: document.getElementById("Expiration").value,
-				nameservers: document.getElementById("Nameservers").value,
-				notes: document.getElementById("Enotes").value,
-			}),
-		}).then((res) => {
-			if (res.ok) {
-				alert("Domain updated");
-				location.reload();
-			} else {
-				alert("Error updating domain");
-			}
-		});
-	});
-
-	document.getElementById("delC").addEventListener("click", () => {
-		document.getElementById("delCDiag").showModal();
-	});
 	search.addEventListener("input", (e) => {
 		const rows = Array.from(table.rows).slice(1); // Exclude header row
 		const searchTerm = e.target.value.toLowerCase();
@@ -252,27 +201,6 @@ function main() {
 			const cellText = row.cells[0].firstChild.textContent.toLowerCase();
 			row.hidden = !cellText.includes(searchTerm);
 		});
-	});
-	document.getElementById("delCBtn").addEventListener("click", () => {
-		let id = document.getElementById("delCSel").value;
-		if (id === "null") {
-			alert("Please select a client");
-			return;
-		}
-		if (confirm("Are you sure?\nThis action cannot be undone.\nAll domains for this client MUST be deleted (including in TLS tracker) otherwise this will FAIL!")) {
-			fetch(`/api/deleteClient/${id}`, {
-				method: "DELETE",
-			}).then(async (res) => {
-				if (res.ok) {
-					alert("Client deleted");
-					location.reload();
-				} else if (res.status === 409) {
-					alert(await res.text());
-				} else {
-					alert("Error deleting client");
-				}
-			});
-		}
 	});
 }
 

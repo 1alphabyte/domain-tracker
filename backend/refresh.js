@@ -1,14 +1,15 @@
 import { Database } from "bun:sqlite";
 import nodemailer from "nodemailer";
-import rdapClient from "rdap-client"
-import whoiser from "whoiser"
+import rdapClient from "rdap-client";
+import whoiser from "whoiser";
+import getTLSCert from "./fetch_crt.js"
 
 const db = new Database(process.env.DB_PATH || "./db.sqlite");
 
 let transporter = nodemailer.createTransport({
-	host: "send.smtp.com",
-	port: 465,
-	secure: true,
+	host: process.env.SMTP_HOST,
+	port: process.env.SMTP_PORT,
+	secure: process.env.SMTP_TLS,
 	auth: {
 		user: process.env.SMTP_USER,
 		pass: process.env.SMTP_PASSWORD,
@@ -31,7 +32,7 @@ if (c > 0) {
 const domains = db.query("SELECT * FROM domains").all();
 for (const domain of domains) {
 	let domainDate = new Date(domain.expiration).getTime();
-	let date = new Date().getTime() + (25 * 24 * 60 * 60 * 1000);
+	let date = new Date().getTime() + (process.env.DAYS_REMIND_DOMAIN_EXP * 24 * 60 * 60 * 1000);
 	if (domainDate < date) {
 		console.info("Refreshing", domain.domain);
 		let exp, ns, reg, raw;
@@ -78,7 +79,7 @@ let expiringSoon = [];
 
 db.query("SELECT * FROM domains").all().forEach((domain) => {
 	let domainDate = new Date(domain.expiration).getTime();
-	let date = new Date().getTime() + (25 * 24 * 60 * 60 * 1000);
+	let date = new Date().getTime() + (process.env.DAYS_REMIND_DOMAIN_EXP * 24 * 60 * 60 * 1000);
 	if (domainDate <= date) {
 		expiringSoon.push(domain);
 	}
@@ -92,17 +93,70 @@ if (expiringSoon.length !== 0) {
 		from: "domaintrk@cbt.io",
 		to: process.env.EMAIL_FOR_EXPIRING_DOMAINS,
 		subject: "Domains expiring soon",
-		html: "<h3>The following domain(s) are expiring within the next 25 days</h3><p>Click a domain to view it in Domain Tracker</p><ul>" +
+		html: "<h3>The following domain(s) are expiring within the next " + process.env.DAYS_REMIND_DOMAIN_EXP + " days</h3><p>Click a domain to view it in Domain Tracker</p><ul>" +
 			expiringSoon.map((d) => {
 				const expirationDate = new Date(d.expiration);
 				let days = Math.round((expirationDate.getTime() - currentDate) / (1000 * 3600 * 24));
 				let dayString = days;
-				if (days <= 10) {
+				if (days <= Math.round(process.env.DAYS_REMIND_DOMAIN_EXP/2)) {
 					dayString = `<b>${days}</b>`
 				}
 
 				return `<li><a href="https://ec2-54-218-183-201.us-west-2.compute.amazonaws.com:81/dash/?q=${d.domain}">${d.domain}</a> is expiring on ${expirationDate.toLocaleDateString()} (in ${dayString} days)</li>`;
 			}).join("\n") + "</ul><br /><footer style='font-size: smaller;'>Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.</footer>"
+	}, (err, info) => {
+		if (err) {
+			console.error(err);
+		} else {
+			console.info(info);
+		}
+	});
+};
+
+const crts = db.query("SELECT * FROM crts").all();
+for (const crt of crts) {
+	let domainDate = new Date(crt.expiration).getTime();
+	let date = new Date().getTime() + (process.env.DAYS_REMIND_TLS_EXP * 24 * 60 * 60 * 1000);
+	if (domainDate <= date) {
+		try {
+			let t = await getTLSCert(crt.domain);
+			db.query("UPDATE crts SET expiration = ?1, authority = ?2, rawData = ?3 WHERE id = ?4")
+				.run(new Date(t[1]).getTime(), t[0], t[3], crt.id);
+			console.info("Updated", crt.domain);
+		} catch (e) {
+			console.error(e);
+			console.info("Error updating domain", crt.domain);
+		}
+	}
+}
+expiringSoon = [];
+db.query("SELECT * FROM crts").all().forEach((crt) => {
+	let domainDate = new Date(crt.expiration).getTime();
+	let date = new Date().getTime() + (process.env.DAYS_REMIND_TLS_EXP * 24 * 60 * 60 * 1000);
+	if (domainDate <= date) {
+		expiringSoon.push(crt);
+	}
+});
+
+if (expiringSoon.length > 0) {
+
+	const currentDate = Date.now();
+
+	transporter.sendMail({
+		from: "domaintrk+tlstracker@cbt.io",
+		to: process.env.EMAIL_FOR_EXPIRING_DOMAINS,
+		subject: "TLS certificates expiring soon",
+		html: "<h3>The following TLS certificate(s) are expiring within the next " + process.env.DAYS_REMIND_TLS_EXP + " days</h3><p>Click a domain to view it in TLS certificate Tracker</p><ul>" +
+			expiringSoon.map((d) => {
+				const expirationDate = new Date(d.expiration);
+				let days = Math.round((expirationDate.getTime() - currentDate) / (1000 * 3600 * 24));
+				let dayString = days;
+				if (days <= Math.round(process.env.DAYS_REMIND_TLS_EXP/2)) {
+					dayString = `<b>${days}</b>`
+				}
+
+				return `<li><a href="https://ec2-54-218-183-201.us-west-2.compute.amazonaws.com:81/dash/tls/?q=${d.commonName}">${d.domain}</a> is expiring on ${expirationDate.toLocaleDateString()} (in ${dayString} days)</li>`;
+			}).join("\n") + "</ul><br /><footer style='font-size: smaller;'>Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%;' />TLS Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.</footer>"
 	}, (err, info) => {
 		if (err) {
 			console.error(err);

@@ -1,6 +1,7 @@
 if (localStorage.getItem("auth")) {
 	location.assign("/dash/");
 } else {
+	const searchParms = new URLSearchParams(location.search);
 	document.querySelector("form").addEventListener("submit", (e) => {
 		e.preventDefault();
 		fetch("/api/login", {
@@ -9,6 +10,8 @@ if (localStorage.getItem("auth")) {
 		}).then(res => {
 			if (res.ok) {
 				localStorage.setItem("auth", true);
+				if (searchParms.has("q") && searchParms.get("q").length > 0) 
+					location.assign(`/dash/?q=${searchParms.get("q")}`);
 				location.assign("/dash/");
 			} else if (res.status === 403) {
 				alert("Invalid username or password");

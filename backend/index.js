@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import Bun from "bun";
 import rdapClient from "rdap-client"
 import whoiser from "whoiser"
-
+import getTLSCert from "./fetch_crt.js"
 const db = new Database(process.env.DB_PATH || "./db.sqlite");
 
 
@@ -151,6 +151,8 @@ const server = Bun.serve({ // make a new server using Bun serve
 							body.notes || ""
 						).lastInsertRowid;
 				} catch (error) {
+					if (error.code === "SQLITE_CONSTRAINT_UNIQUE")
+						return new Response("Domain already exists", { status: 409 });
 					console.error(error);
 					return new Response("Error adding domain", { status: 500 });
 				}
@@ -211,8 +213,10 @@ const server = Bun.serve({ // make a new server using Bun serve
 					return new Response("Missing ID", { status: 400 });
 				// check if there are domains are linked with client
 				let q = db.query('SELECT COUNT(*) AS domainCount FROM domains WHERE clientId = ?').get(id);
-				if (q.domainCount > 0) {
-					return new Response("Client has linked domains and cannot be deleted", { status: 409 });
+				// also check in TLS tracker
+				let q2 = db.query('SELECT COUNT(*) AS tlsCount FROM crts WHERE clientId = ?').get(id);
+				if (q.domainCount > 0 && q2.tlsCount > 0) {
+					return new Response("Client has linked resources and cannot be deleted", { status: 409 });
 				}
 			  
 				try {
@@ -220,6 +224,63 @@ const server = Bun.serve({ // make a new server using Bun serve
 				} catch (error) {
 					console.error(error);
 					return new Response("Error deleting client", { status: 500 });
+				}
+				return new Response(null, { status: 200 });
+			}
+			case "tlsAddDomain": {
+				if (req.method !== "POST")
+					return new Response("Method not allowed", { status: 405, headers: { "Allow": "DELETE" } });
+				if (!checkAuth(req)) 
+					return new Response("Unauthorized", { status: 401 });
+				let body = await req.json();
+				if (!body.domain || !body.clientId)
+					return new Response("Missing domain or client ID", { status: 400 });
+				let text = await getTLSCert(body.domain)
+				let q;
+				try {
+					q = db.query("INSERT INTO crts (domain, commonName, expiration, authority, clientId, rawData, notes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);")
+					.run(
+						body.domain,
+						text[2],
+						new Date(text[1]).getTime(),
+						text[0],
+						body.clientId,
+						text[3],
+						body.notes || ""
+					).lastInsertRowid;
+				} catch (error) {
+					if (error.code === "SQLITE_CONSTRAINT_UNIQUE")
+						return new Response(text[2], { status: 409 });
+					console.error(error);
+					return new Response("Error adding domain", { status: 500 });
+				}
+				return new Response(q, { status: 201 });
+			}
+			case "tlsList": {
+				if (req.method !== "GET") {
+					return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET" } });
+				}
+				let session = checkAuth(req);
+				if (!session) 
+					return new Response("Unauthorized", { status: 401 });
+				// get all the clients from the database
+				let q = db.query("SELECT * FROM crts").all();
+				// send the clients back to the client
+				return new Response(JSON.stringify(q), { headers: { "Content-Type": "application/json" } });
+			}
+			case "tlsDelete": {
+				if (req.method !== "DELETE")
+					return new Response("Method not allowed", { status: 405, headers: { "Allow": "DELETE" } });
+				if (!checkAuth(req)) 
+					return new Response("Unauthorized", { status: 401 });
+				let id = pathArr[3];
+				if (!id)
+					return new Response("Missing ID", { status: 400 });
+				try {
+					db.query("DELETE FROM crts WHERE id = ?1").run(id);
+				} catch (error) {
+					console.error(error);
+					return new Response("Error deleting domain", { status: 500 });
 				}
 				return new Response(null, { status: 200 });
 			}
