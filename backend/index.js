@@ -1,8 +1,8 @@
 import { Database } from "bun:sqlite";
 import Bun from "bun";
-import rdapClient from "rdap-client"
-import whoiser from "whoiser"
-import getTLSCert from "./fetch_crt.js"
+import rdapClient from "rdap-client";
+import whoiser from "whoiser";
+import getTLSCert from "./fetch_crt.js";
 const db = new Database(process.env.DB_PATH || "./db.sqlite");
 
 
