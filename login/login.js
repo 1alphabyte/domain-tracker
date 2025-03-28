@@ -12,7 +12,8 @@ if (localStorage.getItem("auth")) {
 				localStorage.setItem("auth", true);
 				if (searchParms.has("q") && searchParms.get("q").length > 0) 
 					location.assign(`/dash/?q=${searchParms.get("q")}`);
-				location.assign("/dash/");
+				else
+					location.assign("/dash/");
 			} else if (res.status === 403) {
 				alert("Invalid username or password");
 			} else {

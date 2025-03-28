@@ -1,1 +1,1 @@
-30 7 * * 1 cd /usr/src/app && bun run ./refresh.js > /proc/1/fd/1
+30 6 * * 1 cd /usr/src/app && bun run ./refresh.js > /proc/1/fd/1

@@ -13,7 +13,8 @@ async function loadDomains() {
 				if (localStorage.getItem("auth")) localStorage.removeItem("auth");
 				if (searchParms.has("q") && searchParms.get("q").length > 0)
 					location.assign(`/login/?q=${searchParms.get("q")}`);
-				location.assign("/login/");
+				else
+					location.assign("/login/");
 			} else {
 				console.error(res);
 				return null;

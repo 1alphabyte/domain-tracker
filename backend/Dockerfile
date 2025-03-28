@@ -13,8 +13,8 @@ RUN go mod init ido/notcare
 RUN go build -ldflags="-s -w" -o /out/fetch_certificate /build/fetch_certificate.go
 
 FROM base
-LABEL org.opencontainers.image.authors="e@utsav2.dev"
-LABEL org.opencontainers.image.license="GPL-3.0 license"
+LABEL org.opencontainers.image.authors="Utsav <e@utsav2.dev>"
+LABEL org.opencontainers.image.license="GPL-3.0"
 COPY --from=install /temp/prod/node_modules node_modules
 COPY index.js migration.ts package.json refresh.js init.sh fetch_crt.js /usr/src/app/
 COPY --from=build /out/fetch_certificate /usr/src/app/
