@@ -4,8 +4,8 @@ import csv from 'csv-parser';
 const results: CsvRow[] = [];
 const csvFilePath = './domains.csv';
 let clients: string[] = [];
-let apiBaseUrl = 'http://54.218.183.201:81';
-let authCookie = "auth=10876651-f22a-4629-81bc-73fa24f84d77"
+let apiBaseUrl = 'http://localhost:8080';
+let authCookie = "auth="
 fs.createReadStream(csvFilePath)
 	.pipe(csv())
 	.on('data', (data: CsvRow) => results.push(data))

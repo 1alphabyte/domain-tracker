@@ -10,7 +10,7 @@
 	}
 }
 {$address} {
-	redir / /login permanent
+	redir / /login/ permanent
 	file_server /* {
 		root /srv
 	}

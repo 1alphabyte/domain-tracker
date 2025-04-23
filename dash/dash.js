@@ -42,6 +42,9 @@ async function loadDomains() {
 		let domain = document.createElement("td");
 		let exp = document.createElement("td");
 		let ns = document.createElement("td");
+		let aDNS = document.createElement("td");
+		let aaaaDNS = document.createElement("td");
+		let mxDNS = document.createElement("td");
 		let reg = document.createElement("td");
 		let client = document.createElement("td");
 		let notes = document.createElement("td");
@@ -54,18 +57,42 @@ async function loadDomains() {
 		deleteBtn.className = "deleteIcon";
 		deleteBtn.title = "Delete";
 		deleteBtn.dataset.id = d.id;
+		aDNS.className = "dnsRecord";
+		aaaaDNS.className = "dnsRecord";
+		mxDNS.className = "dnsRecord";
+		aDNS.hidden = true;
+		aaaaDNS.hidden = true;
+		mxDNS.hidden = true;
+		ns.className = "nameServer";
 
 		domain.textContent = d.domain;
 		domain.appendChild(edit);
 		domain.appendChild(deleteBtn);
 		exp.textContent = new Date(d.expiration).toLocaleDateString();
 		ns.textContent = d.nameservers.split(",").join(", ");
+		let dnsD = JSON.parse(d.dns);
+		dnsD.a ? aDNS.textContent = dnsD.a : aDNS.textContent = "None ❌";
+		dnsD.aaaa ? aaaaDNS.textContent = dnsD.aaaa : aaaaDNS.textContent = "None ❌";
+		mxDNS.textContent = dnsD.mx ? "View" : "None ❌";
 		reg.textContent = d.registrar;
 		client.textContent = clients.filter((c) => c.id == d.clientId)[0].name;
 		raw.dataset.id = d.id;
 		raw.textContent = "View";
 		raw.className = "rawDataBtn";
-		notes.textContent = d.notes ? "View" : "None";
+		notes.textContent = d.notes ? "View" : "None ❌";
+
+		if (dnsD.mx) {
+			mxDNS.classList.add("rawDataBtn");
+			mxDNS.dataset.id = d.id;
+			mxDNS.addEventListener("click", (e) => {
+				let id = e.target.dataset.id;
+				let d = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].mx;
+				let diag = document.getElementById("rawDataDiag");
+				document.getElementById("rawDataDiagHeader").textContent = "DNS: MX records";
+				document.getElementById("rawData").textContent = dnsD.mx.sort((a, b) => a.split(" ")[0] - b.split(" ")[0]).join("\n");
+				diag.showModal();
+			});
+		}
 
 		if (d.notes) {
 			notes.className = "rawDataBtn";
@@ -128,6 +155,9 @@ async function loadDomains() {
 		row.appendChild(domain);
 		row.appendChild(exp);
 		row.appendChild(ns);
+		row.appendChild(aaaaDNS);
+		row.appendChild(mxDNS);
+		row.appendChild(aDNS);
 		row.appendChild(reg);
 		row.appendChild(client);
 		row.appendChild(notes);
@@ -339,3 +369,21 @@ function sortTableDate(columnIndex) {
 
 	rows.forEach(row => table.appendChild(row));
 }
+
+document.getElementById("tableHeader2").addEventListener("click", () => {
+	document.getElementById("ns").hidden = true;
+	document.getElementById("a").hidden = false;
+	document.getElementById("aaaa").hidden = false;
+	document.getElementById("mx").hidden = false;
+	Array.from(document.getElementsByClassName("nameServer")).forEach((e) => e.hidden = true);
+	Array.from(document.getElementsByClassName("dnsRecord")).forEach((e) => e.hidden = false);
+});
+
+document.getElementById("tableHeader22").addEventListener("click", () => {
+	document.getElementById("ns").hidden = false;
+	document.getElementById("a").hidden = true;
+	document.getElementById("aaaa").hidden = true;
+	document.getElementById("mx").hidden = true;
+	Array.from(document.getElementsByClassName("nameServer")).forEach((e) => e.hidden = false);
+	Array.from(document.getElementsByClassName("dnsRecord")).forEach((e) => e.hidden = true);
+});

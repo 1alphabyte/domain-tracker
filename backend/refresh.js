@@ -63,9 +63,21 @@ for (const domain of domains) {
 				continue;
 			}
 		}
+		// fetch DNS info
+		let dnsObj = JSON.stringify({
+			"a": await fetch(`https://dns.google/resolve?name=${body.domain}&type=a`).then(res => res.json()).then(data => 
+				(data.Status === 0 && data.Answer) ? data.Answer[0].data : null
+			),
+			"aaaa": await fetch(`https://dns.google/resolve?name=${body.domain}&type=aaaa`).then(res => res.json()).then(data =>
+				(data.Status === 0 && data.Answer) ? data.Answer[0].data : null
+			),
+			"mx": await fetch(`https://dns.google/resolve?name=${body.domain}&type=mx`).then(res => res.json()).then(data =>
+				(data.Status === 0 && data.Answer) ? data.Answer.map(item => item.data) : null
+			)
+		});
 		try {
-			db.query("UPDATE domains SET expiration = ?1, nameservers = ?2, registrar = ?3, rawWhoisData = ?4 WHERE id = ?5")
-				.run(exp, ns, reg, raw, domain.id);
+			db.query("UPDATE domains SET expiration = ?1, nameservers = ?2, dns = ?3, registrar = ?4, rawWhoisData = ?5 WHERE id = ?6")
+				.run(exp, ns, dnsObj, reg, raw, domain.id);
 			console.info("Updated", domain.domain);
 		} catch (e) {
 			console.error(e);

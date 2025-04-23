@@ -6,14 +6,20 @@ import getTLSCert from "./fetch_crt.js";
 const db = new Database(process.env.DB_PATH || "./db.sqlite");
 
 
-function checkAuth(req) {// Checks if the user is authenticated using a Cookie
-	let token = req.headers.get("Cookie");
-	if (!token) 
+function checkAuth(req) { // Checks if the user is authenticated using a Cookie
+	let cookie = req.headers.get("Cookie");
+	if (!cookie) 
 		return null;
-	
+
+	cookie = cookie.split(";")
+	let token = cookie.filter((e) => e.startsWith("auth="))
+
+	if (token.length <= 0)
+		return null;
+
+	token = token[0]
 	token = token.split("=");
-	if (token[0] != "auth")
-		return null;
+
 
 	let session = db.query("SELECT * FROM sessions WHERE token = ?1;").get(token[1]);
 	if (!session || session.expires < Date.now())
@@ -138,14 +144,27 @@ const server = Bun.serve({ // make a new server using Bun serve
 						return new Response("Error getting domain data", { status: 500 });
 					}
 				}
-				let q
+				let q;
+				// fetch DNS info
+				let dnsObj = JSON.stringify({
+					"a": await fetch(`https://dns.google/resolve?name=${body.domain}&type=a`).then(res => res.json()).then(data => 
+						(data.Status === 0 && data.Answer) ? data.Answer[0].data : null
+					),
+					"aaaa": await fetch(`https://dns.google/resolve?name=${body.domain}&type=aaaa`).then(res => res.json()).then(data =>
+						(data.Status === 0 && data.Answer) ? data.Answer[0].data : null
+					),
+					"mx": await fetch(`https://dns.google/resolve?name=${body.domain}&type=mx`).then(res => res.json()).then(data =>
+						(data.Status === 0 && data.Answer) ? data.Answer.map(item => item.data) : null	
+					)
+				});
 				try {
-					q = db.query("INSERT INTO domains (domain, expiration, nameservers, registrar, clientId, rawWhoisData, notes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);")
+					q = db.query("INSERT INTO domains (domain, expiration, nameservers, registrar, dns, clientId, rawWhoisData, notes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);")
 						.run(
 							body.domain,
 							exp,
 							ns,
 							reg,
+							dnsObj,
 							body.clientId,
 							raw,
 							body.notes || ""

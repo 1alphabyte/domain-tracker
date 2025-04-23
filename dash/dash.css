@@ -139,3 +139,27 @@ input, select, textarea {
 	background-color: #5d6e7c;
 	color: #fff;
 }
+
+.togg {
+	width: 1.1em;
+	transition: .3s;
+}
+
+.togg:hover {
+	cursor: pointer;
+	transform: scale(1.5);
+	transition: .5s;
+}
+
+#aaaa {
+	border: #63cef9 solid .5px;
+	border-right: none;
+}
+#mx {
+	border-top: #63cef9 solid .5px;
+	border-bottom: #63cef9 solid .5px;
+}
+#a {
+	border: #63cef9 solid .5px;
+	border-left: none;
+}
