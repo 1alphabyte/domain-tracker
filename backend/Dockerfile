@@ -6,7 +6,7 @@ RUN mkdir -p /temp/prod
 COPY package.json bun.lockb /temp/prod/
 RUN cd /temp/prod && bun install --frozen-lockfile --production
 
-FROM golang:1.23-alpine AS build
+FROM golang:1.24-alpine AS build
 WORKDIR /build
 COPY fetch_certificate.go .
 RUN go mod init ido/notcare

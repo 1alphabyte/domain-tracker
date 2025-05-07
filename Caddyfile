@@ -11,6 +11,7 @@
 }
 {$address} {
 	redir / /login/ permanent
+	encode
 	file_server /* {
 		root /srv
 	}
