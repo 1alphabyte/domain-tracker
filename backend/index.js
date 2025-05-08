@@ -12,7 +12,7 @@ function checkAuth(req) { // Checks if the user is authenticated using a Cookie
 		return null;
 
 	cookie = cookie.split(";")
-	let token = cookie.filter((e) => e.startsWith("auth="))
+	let token = cookie.filter((e) => e.trimStart().startsWith("auth="))
 
 	if (token.length <= 0)
 		return null;

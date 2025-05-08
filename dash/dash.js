@@ -170,8 +170,9 @@ async function loadDomains() {
 
 function main() {
 	if (window.matchMedia("(max-width: 850px)").matches) {
-		document.querySelector("body").innerHTML = "<h1>Your screen size doesn't meet the minimum requirements</h1>";
+		document.querySelector("body").innerHTML = `<h1>Your screen size doesn't meet the minimum requirements</h1><br /><p>Current width: ${window.innerWidth}px</p><p>Minimum width: 850px</p><p>Please resize your window or use a different device</p>`;
 		window.addEventListener("resize", () => {
+			document.querySelector("body").innerHTML = `<h1>Your screen size doesn't meet the minimum requirements</h1><br /><p>Current width: ${window.innerWidth}px</p><p>Minimum width: 850px</p><p>Please resize your window or use a different device</p>`;
 			if (window.matchMedia("(min-width: 850px)").matches) {
 				location.reload();
 			}
@@ -211,7 +212,6 @@ function main() {
 			} else if (res.status === 409) {
 				alert("Domain already exists\nDomains can only be added once");
 				location.assign(`./?q=${domain}`);
-				
 			} else {
 				alert("Error adding domain");
 			}

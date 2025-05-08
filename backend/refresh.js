@@ -65,13 +65,13 @@ for (const domain of domains) {
 		}
 		// fetch DNS info
 		let dnsObj = JSON.stringify({
-			"a": await fetch(`https://dns.google/resolve?name=${body.domain}&type=a`).then(res => res.json()).then(data => 
+			"a": await fetch(`https://dns.google/resolve?name=${domain.domain}&type=a`).then(res => res.json()).then(data => 
 				(data.Status === 0 && data.Answer) ? data.Answer[0].data : null
 			),
-			"aaaa": await fetch(`https://dns.google/resolve?name=${body.domain}&type=aaaa`).then(res => res.json()).then(data =>
+			"aaaa": await fetch(`https://dns.google/resolve?name=${domain.domain}&type=aaaa`).then(res => res.json()).then(data =>
 				(data.Status === 0 && data.Answer) ? data.Answer[0].data : null
 			),
-			"mx": await fetch(`https://dns.google/resolve?name=${body.domain}&type=mx`).then(res => res.json()).then(data =>
+			"mx": await fetch(`https://dns.google/resolve?name=${domain.domain}&type=mx`).then(res => res.json()).then(data =>
 				(data.Status === 0 && data.Answer) ? data.Answer.map(item => item.data) : null
 			)
 		});
