@@ -1,13 +1,5 @@
 {
 	admin off
-	local_certs
-	skip_install_trust
-	ocsp_stapling off
-	pki {
-		ca local {
-			name "CBT Root CA"
-		}
-	}
 }
 {$address} {
 	redir / /login/ permanent
