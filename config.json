@@ -1,0 +1,3 @@
+{
+	"database_url": "postgres://user:example@localhost:5432/domaintrk"
+}

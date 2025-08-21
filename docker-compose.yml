@@ -1,25 +1,15 @@
 ---
 services:
-  frontend:
-    image: ghcr.io/1alphabyte/domain-tracker:frontend
+  domaintrk:
+    image: ghcr.io/1alphabyte/domain-tracker:latest
     container_name: domaintrk
     depends_on:
-      - backend
-    volumes:
-      - ./caddy_data:/data
-      - ./caddy_config:/config
-    environment:
-      - address=localhost:8080
-    ports:
-      - 8080:8080
-    restart: unless-stopped
-
-  backend:
-    image: ghcr.io/1alphabyte/domain-tracker:backend
+      - db
     volumes:
       - ./data:/data/
       - /etc/localtime:/etc/localtime:ro
     environment:
+      - address=localhost:8080
       - INIT_PASSWORD=admin123
       - INIT_USER=admin
       - SMTP_USER=
@@ -30,5 +20,20 @@ services:
       - SMTP_TLS=true
       - DAYS_REMIND_DOMAIN_EXP=25
       - DAYS_REMIND_TLS_EXP=15
-    container_name: domaintrk_backend
+    ports:
+      - 8080:8080
     restart: unless-stopped
+
+  db:
+    image: docker.io/postgres:latest
+    restart: always
+    shm_size: 128mb
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_USER: user
+      POSTGRES_DB: domaintrk
+    # for dev ONLY, in prod the containers are in the same docker network
+    ports:
+      - 5432:5432

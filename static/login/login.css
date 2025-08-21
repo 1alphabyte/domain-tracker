@@ -13,7 +13,8 @@ h1 {
 input {
 	border-radius: 7px;
 	margin-top: 5px;
-	width: 200px;
+	/* get width based on size of the parent */
+	width: calc(100% - 35px);
 	padding: 10px;
 	color: #e5e5e5;
 	border: none;
