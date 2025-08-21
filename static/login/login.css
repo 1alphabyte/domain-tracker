@@ -71,3 +71,24 @@ body {
 	align-items: center;
 	height: 70vh;
 }
+
+#error-dialog {
+	background-color: rgba(72, 0, 0, 0.8);
+	color: white;
+	border: none;
+	border-radius: 15px;
+	padding: 35px;
+}
+
+#close-dialog {
+	background-color: rgba(2, 9, 90, 0.3);
+	color: white;
+	border: none;
+	border-radius: 5px;
+	padding: 10px 15px;
+	cursor: pointer;
+}
+
+#close-dialog:hover {
+	background-color: rgba(0, 14, 163, 0.4);
+}

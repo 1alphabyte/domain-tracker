@@ -3,11 +3,19 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func InitDBSetup() {
+	// check if the database has already been initialized
+	if _, err := os.Stat(".dbinit"); err == nil {
+		// Database has already been initialized
+		return
+	}
+
 	db := setupDatabase()
 
 	defer db.Close(context.Background())
@@ -17,7 +25,8 @@ func InitDBSetup() {
 			id SERIAL PRIMARY KEY,
 			username TEXT NOT NULL UNIQUE,
 			password BYTEA NOT NULL,
-			lastLogin BIGINT
+			lastLogin BIGINT NOT NULL DEFAULT 0,
+			CONSTRAINT min_length_check CHECK (LENGTH(username) >= 5)
 		)
 	`)
 	if err != nil {
@@ -26,7 +35,7 @@ func InitDBSetup() {
 
 	_, err = db.Exec(context.TODO(), `
 		CREATE TABLE IF NOT EXISTS sessions (
-			token TEXT NOT NULL,
+			token VARCHAR(43) NOT NULL,
 			userId INTEGER NOT NULL,
 			expires BIGINT NOT NULL,
 			FOREIGN KEY(userId) REFERENCES users(id)
@@ -80,10 +89,26 @@ func InitDBSetup() {
 	if err != nil {
 		log.Fatalf("Failed to create crts table: %v\n", err)
 	}
+
+	// create an initial user
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(getConfig().InitPwd), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalln("Failed to hash password:", err)
+	}
+
+	_, err = db.Exec(context.TODO(), "INSERT INTO users (username, password) VALUES ($1, $2)", getConfig().InitUsr, hashedPassword)
+	if err != nil {
+		log.Fatalf("Failed to create initial user: %v\n", err)
+	}
+
+	// Create a file to indicate that the database has been initialized
+	if err := os.WriteFile(".dbinit", []byte{}, 0644); err != nil {
+		log.Fatalf("Failed to create .dbinit file: %v\n", err)
+	}
 }
 
 func setupDatabase() *pgx.Conn {
-	conn, err := pgx.Connect(context.Background(), getConfigValue().DatabaseURL)
+	conn, err := pgx.Connect(context.Background(), getConfig().DatabaseURL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
