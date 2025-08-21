@@ -8,6 +8,7 @@ services:
     volumes:
       - ./data:/data/
       - /etc/localtime:/etc/localtime:ro
+      - ./config.json:/app/config.json
     environment:
       - address=localhost:8080
       - INIT_PASSWORD=admin123

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -35,7 +36,7 @@ func InitDBSetup() {
 
 	_, err = db.Exec(context.TODO(), `
 		CREATE TABLE IF NOT EXISTS sessions (
-			token VARCHAR(43) NOT NULL,
+			token VARCHAR(48) NOT NULL,
 			userId INTEGER NOT NULL,
 			expires BIGINT NOT NULL,
 			FOREIGN KEY(userId) REFERENCES users(id)
@@ -47,7 +48,7 @@ func InitDBSetup() {
 
 	_, err = db.Exec(context.TODO(), `
 		CREATE TABLE IF NOT EXISTS clients (
-			id INTEGER PRIMARY KEY,
+			id SERIAL PRIMARY KEY,
 			name TEXT NOT NULL UNIQUE
 		)
 	`)
@@ -75,7 +76,7 @@ func InitDBSetup() {
 
 	_, err = db.Exec(context.TODO(), `
 		CREATE TABLE IF NOT EXISTS crts (
-			id INTEGER PRIMARY KEY,
+			id SERIAL PRIMARY KEY,
 			domain TEXT NOT NULL UNIQUE,
 			commonName TEXT NOT NULL UNIQUE,
 			expiration INTEGER NOT NULL,
@@ -114,4 +115,14 @@ func setupDatabase() *pgx.Conn {
 	}
 
 	return conn
+}
+
+func dbCleanup() {
+	db := setupDatabase()
+
+	// Delete expired sessions
+	_, err := db.Exec(context.TODO(), "DELETE FROM sessions WHERE expires < $1", time.Now().Unix())
+	if err != nil {
+		log.Printf("Failed to delete expired sessions: %v\n", err)
+	}
 }

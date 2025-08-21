@@ -6,7 +6,7 @@ if (localStorage.getItem("auth")) {
 		e.preventDefault();
 		fetch("/api/login", {
 			method: "POST",
-			body: { username: document.getElementById("username").value, password: document.getElementById("password").value }
+			body: JSON.stringify({ username: document.getElementById("username").value, password: document.getElementById("password").value })
 		}).then(res => {
 			if (res.ok) {
 				localStorage.setItem("auth", true);

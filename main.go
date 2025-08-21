@@ -68,18 +68,59 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Set-Cookie", "auth="+token+"; Max-Age=86400; Path=/; httpOnly; SameSite=Strict; Secure")
 }
 
+func getHandler(w http.ResponseWriter, r *http.Request) {
+	// Check if the request method is GET
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	db := setupDatabase()
+
+	// Get all rows from the domains SQL table
+	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+	defer rows.Close()
+
+	// get all domains as a array of JSON objects
+	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
+	if err != nil {
+		http.Error(w, "Error reading domains", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(domains)
+}
+
 func main() {
 	InitDBSetup()
 
-	// go func() {
-	// 	ticker := time.NewTicker(24 * time.Hour)
-	// 	for range ticker.C {
-	// 		dbCleanup()
-	// 	}
-	// }()
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		for range ticker.C {
+			dbCleanup()
+		}
+	}()
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/login", loginHandler)
+	mux.HandleFunc("/api/get", getHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
