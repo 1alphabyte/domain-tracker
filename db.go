@@ -63,9 +63,9 @@ func InitDBSetup() {
 			expiration BIGINT NOT NULL,
 			nameservers TEXT,
 			registrar TEXT NOT NULL,
-			dns TEXT NOT NULL,
+			dns JSON NOT NULL,
 			clientId INTEGER NOT NULL,
-			rawWhoisData TEXT NOT NULL,
+			rawWhoisData JSON NOT NULL,
 			notes TEXT,
 			FOREIGN KEY(clientId) REFERENCES clients(id)
 		)

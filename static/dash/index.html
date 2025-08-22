@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Dashboard | Domain Tracker</title>
+	<link rel="stylesheet" href="dash.css">
+	<link rel="icon" type="image/x-icon" href="/images/favicon.webp">
+</head>
+<body>
+	<header>
+		<img id="logo" alt="CBT logo" src="/images/logo.webp" />
+		<h1>Domain Tracker</h1>
+		<div id="searchContainer">
+			<label for="searchInput">Search: </label><input type="text" id="searchInput">
+		</div>
+		<button onclick="location.assign('./tls')">Open TLS crt Tracker</button>
+	</header>
+	<button id="addD">Add Domain</button>
+	<button id="AddC">Add Client</button>
+	<button id="delC">Delete Client</button>
+	<table>
+		<tr>
+			<th>Domain <i id="tableHeader0" onclick="sortTable(0)" class="arrow left"></i></th>
+			<th>Expires <i id="tableHeader1" onclick="sortTableDate(1)" class="arrow left"></i></th>
+			<th id="ns">Nameservers <img class="togg" id="tableHeader2" title="Switch to DNS view" src="../images/swap.svg" /></th>
+			<th hidden id="aaaa">AAAA Record</th>
+			<th hidden id="mx">MX Record</th>
+			<th hidden id="a">A Record <img class="togg" id="tableHeader22" title="Switch to Nameserver view" src="../images/swap.svg" /></th>
+			<th>Registrar <i id="tableHeader3" onclick="sortTable(3)" class="arrow left"></i></th>
+			<th>Client <i id="tableHeader4" onclick="sortTable(4)" class="arrow left"></i></th>
+			<th>Notes</th>
+			<th>Raw Data</th>
+		</tr>
+	</table>
+	<dialog id="addDDiag">
+		<button class="closeDiag">&#10006;</button>
+		<h3>Add domain</h3>
+		<form id="addDForm">
+			<label for="domain">Domain</label>
+			<input type="text" id="domain" pattern="^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\..{0,61}[a-z0-9]$" required autofocus />
+			<label for="client">Select Client</label>
+			<select id="client" required>
+				<option value="null" disabled selected>Select Client</option>
+			</select>
+			<label for="notes">Notes</label>
+			<textarea id="notes" placeholder="Notes" maxlength="1000" minlength="1"></textarea>
+			<input type="submit" value="Add"/>
+		</form>
+	</dialog>
+	<dialog id="AddCDiag">
+		<button class="closeDiag">&#10006;</button>
+		<h3>Add Client</h3>
+		<form id="addCForm">
+			<label for="clientName">Client Name</label>
+			<input type="text" id="clientName" required minlength="3" maxlength="255" autofocus />
+			<input type="submit" value="Add"/>
+		</form>
+	</dialog>
+	<dialog id="rawDataDiag">
+		<button class="closeDiag">&#10006;</button>
+		<h3 id="rawDataDiagHeader"></h3>
+		<pre id="rawData"></pre>
+	</dialog>
+
+	<dialog id="editDDiag">
+		<button class="closeDiag">&#10006;</button>
+		<h3>Edit domain</h3><p id="Edomain"></p>
+		<form id="editDForm">
+			<label for="Eclient">Client</label>
+			<select id="Eclient" required>
+				<option value="null" disabled selected>Select Client</option>
+			</select>
+			<label for="Expiration">Expiration</label>
+			<input type="date" id="Expiration" required />
+			<label for="Nameservers">Nameservers <span id="warning" title="This can't be edited!">&#9888;</span></label>
+			<input type="text" id="Nameservers" readonly />
+			<label for="Enotes">Notes</label>
+			<textarea id="Enotes" placeholder="Notes" maxlength="1000" minlength="1"></textarea>
+			<input type="submit" value="Edit"/>
+		</form>
+	</dialog>
+
+	<dialog id="delCDiag">
+		<button class="closeDiag">&#10006;</button>
+		<h3>Delete client</h3>
+		<span id="delCName"></span>
+		<button id="delCBtn">Delete</button>
+	</dialog>
+	<script src="dash.js"></script>
+</body>
+</html>

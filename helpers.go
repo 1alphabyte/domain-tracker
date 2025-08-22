@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -34,7 +35,7 @@ func generateSessionToken() string {
 }
 
 func checkSessionToken(r *http.Request) (int, error) {
-	cookie, err := r.Cookie("auth")
+	cookie, err := r.Cookie("session")
 	if err != nil {
 		return -1, err
 	}
@@ -53,4 +54,26 @@ func checkSessionToken(r *http.Request) (int, error) {
 		return -1, errors.New("session expired")
 	}
 	return session.UserID, nil
+}
+
+func ResolveDNS(domain string, class string) string {
+	dnsRes, err := http.Get("https://dns.google/resolve?name=" + domain + "&type=" + class)
+	if err != nil {
+		log.Print(err)
+		return "<error>"
+	}
+	defer dnsRes.Body.Close()
+	var DNSResponse GoogDNSResponse
+	if err := json.NewDecoder(dnsRes.Body).Decode(&DNSResponse); err != nil {
+		log.Print(err)
+		return "<error>"
+	}
+	if DNSResponse.Status == 0 {
+		Records := make([]string, 0, len(DNSResponse.Answer))
+		for _, ans := range DNSResponse.Answer {
+			Records = append(Records, ans.Data)
+		}
+		return strings.Join(Records, ",")
+	}
+	return ""
 }

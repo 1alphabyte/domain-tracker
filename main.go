@@ -5,9 +5,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/likexian/whois"
+	whoisparser "github.com/likexian/whois-parser"
+	"github.com/openrdap/rdap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -65,7 +69,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set cookie on client
-	w.Header().Set("Set-Cookie", "auth="+token+"; Max-Age=86400; Path=/; httpOnly; SameSite=Strict; Secure")
+	w.Header().Set("Set-Cookie", "session="+token+"; Max-Age=86400; Path=/; httpOnly; SameSite=Strict; Secure")
 }
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
@@ -104,8 +108,264 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(domains) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(domains)
+}
+
+// Handle adding a domain to the DB and fetching additional (required) metadata (using RDAP or whois)
+func addHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Decode the JSON request body
+	var domain DomainReqBody
+	if err := json.NewDecoder(r.Body).Decode(&domain); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+	if domain.ClientID == 0 || domain.Domain == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+	client := &rdap.Client{}
+
+	var exp int64
+	var ns, reg, rawData string
+	query, err := client.QueryDomain(domain.Domain)
+	if err != nil {
+		log.Print(err)
+		// Try to fall back to whois
+		result, err := whois.Whois(domain.Domain)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Failed to retrieve WHOIS information", http.StatusInternalServerError)
+			return
+		}
+		res, err := whoisparser.Parse(result)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Failed to parse WHOIS information", http.StatusInternalServerError)
+			return
+		}
+
+		exp = res.Domain.ExpirationDateInTime.Unix()
+		// Get nameservers
+		nameservers := make([]string, 0, len(res.Domain.NameServers))
+		for _, ns := range res.Domain.NameServers {
+			nameservers = append(nameservers, ns)
+		}
+		jsonNs, err := json.Marshal(nameservers)
+		ns = string(jsonNs)
+		reg = res.Registrar.Name
+		mRawData, _ := json.Marshal(res)
+		rawData = string(mRawData)
+	} else {
+		// Extract expiration date from RDAP events
+		for i := range query.Events {
+			if query.Events[i].Action == "expiration" {
+				tmp, err := time.Parse(time.RFC3339, query.Events[i].Date)
+				if err != nil {
+					log.Print(err)
+					http.Error(w, "Failed to parse expiration date", http.StatusInternalServerError)
+					return
+				}
+				exp = tmp.Unix()
+				break
+			}
+		}
+
+		// Get nameservers
+		nameservers := make([]string, 0, len(query.Nameservers))
+		for _, ns := range query.Nameservers {
+			nameservers = append(nameservers, ns.LDHName)
+		}
+		jsonNs, err := json.Marshal(nameservers)
+		ns = string(jsonNs)
+
+		// Get registrar
+		for _, entity := range query.Entities {
+			if entity.Roles[0] == "registrar" {
+				reg = entity.VCard.Name()
+			}
+		}
+
+		// Get the raw RDAP JSON response
+		jsonBytes, err := json.Marshal(query)
+		if err != nil {
+			// soft fail
+			log.Printf("Error marshaling RDAP response to JSON: %v", err)
+			rawData = "<error>"
+		} else {
+			rawData = string(jsonBytes)
+		}
+	}
+
+	// Get DNS
+	dns := DNS{
+		A:    ResolveDNS(domain.Domain, "A"),
+		AAAA: ResolveDNS(domain.Domain, "AAAA"),
+		MX:   ResolveDNS(domain.Domain, "MX"),
+	}
+
+	// Connect to the DB
+	db := setupDatabase()
+
+	_, err = db.Exec(context.TODO(), "INSERT INTO domains (domain, expiration, nameservers, registrar, dns, clientid, rawwhoisdata, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+		domain.Domain,
+		exp,
+		ns,
+		reg,
+		dns,
+		domain.ClientID,
+		rawData,
+		domain.Notes,
+	)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Failed to add domain", http.StatusInternalServerError)
+		return
+	}
+}
+
+func clientListHandler(w http.ResponseWriter, r *http.Request) {
+	// Check if the request method is GET
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	db := setupDatabase()
+
+	// Get all rows from the clients SQL table
+	rows, err := db.Query(context.TODO(), "SELECT * FROM clients")
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+	defer rows.Close()
+
+	// get all clients as a array of JSON objects
+	clients, err := pgx.CollectRows(rows, pgx.RowToStructByName[Client])
+	if err != nil {
+		http.Error(w, "Error reading clients", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+
+	if len(clients) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(clients)
+}
+
+func clientAddHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Get the request body and parse it
+	var client Client
+	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+	if client.Name == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	db := setupDatabase()
+
+	_, err = db.Exec(context.TODO(), "INSERT INTO clients (name) VALUES ($1)", client.Name)
+	if err != nil {
+		http.Error(w, "Failed to add client", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(client)
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "DELETE" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	id := strings.Split(r.URL.Path, "/")[3]
+	if id == "" {
+		http.Error(w, "Missing ID", http.StatusBadRequest)
+		return
+	}
+
+	db := setupDatabase()
+
+	c, err := db.Exec(context.TODO(), "DELETE FROM domains WHERE id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete domain", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+	if c.RowsAffected() == 0 {
+		http.Error(w, "Domain not found", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func main() {
@@ -121,6 +381,10 @@ func main() {
 
 	mux.HandleFunc("/api/login", loginHandler)
 	mux.HandleFunc("/api/get", getHandler)
+	mux.HandleFunc("/api/add", addHandler)
+	mux.HandleFunc("/api/clientList", clientListHandler)
+	mux.HandleFunc("/api/clientAdd", clientAddHandler)
+	mux.HandleFunc("/api/delete/", deleteHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
