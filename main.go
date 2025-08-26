@@ -14,7 +14,6 @@ import (
 
 // Handle the /api/login route
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	// Check if the request method is POST
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -33,10 +32,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the database connection
 	db := setupDatabase()
-
-	// find the user with the username in the DB
+	// Find the user with the username in the DB
 	var user DbUser
 	err := db.QueryRow(context.TODO(), "SELECT id, password FROM users WHERE username = $1", loginReq.Username).Scan(&user.ID, &user.Password)
 	if err != nil {
@@ -49,7 +46,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Compare the provided password with the stored hashed password
+	// Compare the provided password with the stored hash
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password)); err != nil {
 		http.Error(w, "Invalid username or password", http.StatusForbidden)
 		return
@@ -69,8 +66,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Set-Cookie", "session="+token+"; Max-Age=86400; Path=/; httpOnly; SameSite=Strict; Secure")
 }
 
+// Handle the /api/get route
 func getHandler(w http.ResponseWriter, r *http.Request) {
-	// Check if the request method is GET
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -87,7 +84,6 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
-
 	// Get all rows from the domains SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -97,7 +93,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	// get all domains as a array of JSON objects
+	// Convert all rows to a array of JSON objects
 	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
 	if err != nil {
 		http.Error(w, "Error reading domains", http.StatusInternalServerError)
@@ -105,20 +101,24 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if there are no domains
 	if len(domains) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
+	// Return the domains as JSON to the client
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(domains)
 }
 
+// Handle the /api/edit route
 func editHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
 	// Check session token
 	userID, err := checkSessionToken(r)
 	if err != nil {
@@ -129,34 +129,35 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Decode the JSON request body
 	var req EditReqBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		log.Println(err)
 		return
 	}
+
+	// Make sure the required fields are present
 	if req.ID == 0 || req.ClientID == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
 	db := setupDatabase()
-
 	c, err := db.Exec(context.TODO(), "UPDATE domains SET clientId = $1, notes = $2 WHERE id = $3", req.ClientID, req.Notes, req.ID)
 	if err != nil {
 		http.Error(w, "Failed to update domain", http.StatusInternalServerError)
 		log.Print(err)
 		return
 	}
+	// Make sure the domain was found (and updated)
 	if c.RowsAffected() == 0 {
 		http.Error(w, "Domain not found", http.StatusNotFound)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
-// Handle adding a domain to the DB and fetching additional (required) metadata (using RDAP or whois)
+// Handle (/api/add) adding a domain to the DB and fetching additional (required) metadata (using RDAP [preferred] or whois)
 func addHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -180,11 +181,13 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+	// Make sure the required fields are present
 	if domain.ClientID == 0 || domain.Domain == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
+	// Fetch domain data (helpers.go)
 	exp, ns, reg, rawData, dns, err := fetchDomainData(domain.Domain)
 	if err != nil {
 		http.Error(w, "Failed to fetch domain data", http.StatusInternalServerError)
@@ -192,9 +195,8 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Connect to the DB
 	db := setupDatabase()
-
+	// Insert the new domain into the DB
 	_, err = db.Exec(context.TODO(), "INSERT INTO domains (domain, expiration, nameservers, registrar, dns, clientid, rawwhoisdata, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		domain.Domain,
 		exp,
@@ -213,7 +215,6 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientListHandler(w http.ResponseWriter, r *http.Request) {
-	// Check if the request method is GET
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -230,7 +231,6 @@ func clientListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
-
 	// Get all rows from the clients SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM clients")
 	if err != nil {
@@ -240,7 +240,7 @@ func clientListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	// get all clients as a array of JSON objects
+	// Convert all rows to a array of JSON objects
 	clients, err := pgx.CollectRows(rows, pgx.RowToStructByName[Client])
 	if err != nil {
 		http.Error(w, "Error reading clients", http.StatusInternalServerError)
@@ -248,6 +248,7 @@ func clientListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if there are no clients
 	if len(clients) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -280,13 +281,14 @@ func clientAddHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+
+	// Make sure the required fields are present
 	if client.Name == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
 	db := setupDatabase()
-
 	_, err = db.Exec(context.TODO(), "INSERT INTO clients (name) VALUES ($1)", client.Name)
 	if err != nil {
 		http.Error(w, "Failed to add client", http.StatusInternalServerError)
@@ -313,6 +315,9 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
+
+	// Extract the ID from the URL path
+	// Expected format: /api/delete/:id
 	id := strings.Split(r.URL.Path, "/")[3]
 	if id == "" {
 		http.Error(w, "Missing ID", http.StatusBadRequest)
@@ -327,12 +332,11 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+	// Make sure the domain was found (and deleted)
 	if c.RowsAffected() == 0 {
 		http.Error(w, "Domain not found", http.StatusNotFound)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
@@ -350,6 +354,9 @@ func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
+
+	// Extract the ID from the URL path
+	// Expected format: /api/deleteClient/:id
 	id := strings.Split(r.URL.Path, "/")[3]
 	if id == "" {
 		http.Error(w, "Missing ID", http.StatusBadRequest)
@@ -364,25 +371,34 @@ func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+	// Make sure the client was found (and deleted)
 	if c.RowsAffected() == 0 {
 		http.Error(w, "Client not found", http.StatusNotFound)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func main() {
+	// Initialize the database (create tables if they don't exist)
 	InitDBSetup()
 
-	// go func() {
-	// 	ticker := time.NewTicker(25 * time.Hour)
-	// 	for range ticker.C {
-	// 		dbCleanup()
-	// 	}
-	// }()
+	// Backgrounds tasks using a goroutine and ticker
+	go func() {
+		ticker := time.NewTicker(25 * time.Hour)
+		for range ticker.C {
+			dbCleanup()
+		}
+	}()
 
-	// sendExpDomReminders()
+	// Send weekly expiration reminders
+	go func() {
+		ticker := time.NewTicker(7 * 24 * time.Hour)
+		for range ticker.C {
+			updateDomains()
+			sendExpDomReminders()
+		}
+	}()
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/login", loginHandler)

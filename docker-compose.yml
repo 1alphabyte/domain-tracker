@@ -7,11 +7,8 @@ services:
       - db
     volumes:
       - ./data:/data/
-      - /etc/localtime:/etc/localtime:ro
       - ./config.json:/app/config.json
     environment:
-      - SMTP_PORT=465
-      - SMTP_TLS=true
       - DAYS_REMIND_TLS_EXP=15
     ports:
       - 8080:8080
