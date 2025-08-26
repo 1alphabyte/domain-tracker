@@ -11,6 +11,10 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/likexian/whois"
+	whoisparser "github.com/likexian/whois-parser"
+	"github.com/openrdap/rdap"
 )
 
 func getConfig() Config {
@@ -50,7 +54,7 @@ func checkSessionToken(r *http.Request) (int, error) {
 	}
 
 	// check if the session is expired
-	if session.Expiry < time.Now().Unix() {
+	if time.Now().After(session.Expiry) {
 		return -1, errors.New("session expired")
 	}
 	return session.UserID, nil
@@ -76,4 +80,85 @@ func ResolveDNS(domain string, class string) string {
 		return strings.Join(Records, ",")
 	}
 	return ""
+}
+
+func fetchDomainData(domain string) (exp time.Time, ns string, reg string, rawData string, dns DNS, err error) {
+	client := &rdap.Client{}
+
+	query, err := client.QueryDomain(domain)
+	if err != nil {
+		log.Print(err)
+		// Try to fall back to whois
+		result, err := whois.Whois(domain)
+		if err != nil {
+			log.Println(err)
+			return time.Time{}, "", "", "", DNS{}, err
+		}
+		res, err := whoisparser.Parse(result)
+		if err != nil {
+			log.Println(err)
+			return time.Time{}, "", "", "", DNS{}, err
+		}
+
+		exp = *res.Domain.ExpirationDateInTime
+		// Get nameservers
+		nameservers := make([]string, 0, len(res.Domain.NameServers))
+		nameservers = append(nameservers, res.Domain.NameServers...)
+
+		jsonNs, _ := json.Marshal(nameservers)
+		ns = string(jsonNs)
+		reg = res.Registrar.Name
+		mRawData, e := json.Marshal(res)
+		if e != nil {
+			log.Print(e)
+			rawData = "<error>"
+		} else {
+			rawData = string(mRawData)
+		}
+	} else {
+		// Extract expiration date from RDAP events
+		for i := range query.Events {
+			if query.Events[i].Action == "expiration" {
+				exp, err = time.Parse(time.RFC3339, query.Events[i].Date)
+				if err != nil {
+					log.Print(err)
+					return time.Time{}, "", "", "", DNS{}, err
+				}
+				break
+			}
+		}
+
+		// Get nameservers
+		nameservers := make([]string, 0, len(query.Nameservers))
+		for _, ns := range query.Nameservers {
+			nameservers = append(nameservers, ns.LDHName)
+		}
+		jsonNs, _ := json.Marshal(nameservers)
+		ns = string(jsonNs)
+
+		// Get registrar
+		for _, entity := range query.Entities {
+			if entity.Roles[0] == "registrar" {
+				reg = entity.VCard.Name()
+			}
+		}
+
+		// Get the raw RDAP JSON response
+		jsonBytes, err := json.Marshal(query)
+		if err != nil {
+			// soft fail
+			log.Printf("Error marshaling RDAP response to JSON: %v", err)
+			rawData = "<error>"
+		} else {
+			rawData = string(jsonBytes)
+		}
+	}
+
+	// Get DNS
+	dns = DNS{
+		A:    ResolveDNS(domain, "A"),
+		AAAA: ResolveDNS(domain, "AAAA"),
+		MX:   ResolveDNS(domain, "MX"),
+	}
+	return exp, ns, reg, rawData, dns, nil
 }

@@ -15,10 +15,9 @@ async function loadDomains() {
 					location.assign(`/login/?q=${searchParms.get("q")}`);
 				else
 					location.assign("/login/");
-			}  else if (res.status == 204) {
+			} else if (res.status == 204) {
 				return [];
-			}
-			else {
+			} else {
 				console.error(res);
 				return null;
 			}
@@ -71,7 +70,7 @@ async function loadDomains() {
 		domain.textContent = d.domain;
 		domain.appendChild(edit);
 		domain.appendChild(deleteBtn);
-		exp.textContent = new Date(d.expiration * 1000).toLocaleDateString();
+		exp.textContent = new Date(d.expiration).toLocaleDateString();
 		ns.textContent = d.nameservers ? d.nameservers.join(", ") : "None ❌";
 		let dnsD = d.dns;
 		dnsD.a ? aDNS.textContent = dnsD.a : aDNS.textContent = "None ❌";
@@ -134,14 +133,10 @@ async function loadDomains() {
 			document.getElementById('editDDiag').showModal();
 			let notes = document.getElementById("Enotes");
 			let clientID = document.getElementById("Eclient");
-			let exp = document.getElementById("Expiration");
-			let nameservers = document.getElementById("Nameservers");
 			let currentDomain = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0];
 			notes.value = currentDomain.notes;
 			clientID.value = currentDomain.clientID;
 			document.getElementById("Edomain").textContent = currentDomain.domain;
-			exp.value = new Date(currentDomain.expiration * 1000).toISOString().split("T")[0];
-			nameservers.value = currentDomain.nameservers ? currentDomain.nameservers.join(", ") : "None ❌";
 			document.getElementById("editDForm").dataset.id = id;
 		});
 
@@ -267,10 +262,8 @@ function main() {
 		fetch("/api/edit", {
 			method: "POST",
 			body: JSON.stringify({
-				id: e.target.dataset.id,
-				clientId: document.getElementById("Eclient").value,
-				expiration: document.getElementById("Expiration").value,
-				nameservers: document.getElementById("Nameservers").value,
+				id: parseInt(e.target.dataset.id),
+				clientId: parseInt(document.getElementById("Eclient").value),
 				notes: document.getElementById("Enotes").value,
 			}),
 		}).then((res) => {

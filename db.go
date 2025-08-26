@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -25,9 +24,7 @@ func InitDBSetup() {
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
 			username TEXT NOT NULL UNIQUE,
-			password BYTEA NOT NULL,
-			lastLogin BIGINT NOT NULL DEFAULT 0,
-			CONSTRAINT min_length_check CHECK (LENGTH(username) >= 5)
+			password BYTEA NOT NULL
 		)
 	`)
 	if err != nil {
@@ -38,7 +35,7 @@ func InitDBSetup() {
 		CREATE TABLE IF NOT EXISTS sessions (
 			token VARCHAR(48) NOT NULL,
 			userId INTEGER NOT NULL,
-			expires BIGINT NOT NULL,
+			expires TIMESTAMPTZ NOT NULL,
 			FOREIGN KEY(userId) REFERENCES users(id)
 		)
 	`)
@@ -60,8 +57,8 @@ func InitDBSetup() {
 		CREATE TABLE IF NOT EXISTS domains (
 			id SERIAL PRIMARY KEY,
 			domain TEXT NOT NULL UNIQUE,
-			expiration BIGINT NOT NULL,
-			nameservers TEXT,
+			expiration TIMESTAMPTZ NOT NULL,
+			nameservers JSONB,
 			registrar TEXT NOT NULL,
 			dns JSON NOT NULL,
 			clientId INTEGER NOT NULL,
@@ -79,7 +76,7 @@ func InitDBSetup() {
 			id SERIAL PRIMARY KEY,
 			domain TEXT NOT NULL UNIQUE,
 			commonName TEXT NOT NULL UNIQUE,
-			expiration INTEGER NOT NULL,
+			expiration TIMESTAMPTZ NOT NULL,
 			authority TEXT,
 			clientId INTEGER NOT NULL,
 			rawData TEXT NOT NULL,
@@ -115,14 +112,4 @@ func setupDatabase() *pgx.Conn {
 	}
 
 	return conn
-}
-
-func dbCleanup() {
-	db := setupDatabase()
-
-	// Delete expired sessions
-	_, err := db.Exec(context.TODO(), "DELETE FROM sessions WHERE expires < $1", time.Now().Unix())
-	if err != nil {
-		log.Printf("Failed to delete expired sessions: %v\n", err)
-	}
 }

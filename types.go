@@ -1,9 +1,20 @@
 package main
 
+import "time"
+
 type Config struct {
-	DatabaseURL string `json:"databaseURL"`
-	InitPwd     string `json:"initPassword"`
-	InitUsr     string `json:"initUser"`
+	DatabaseURL   string `json:"databaseURL"`
+	InitPwd       string `json:"initPassword"`
+	InitUsr       string `json:"initUser"`
+	ListenAddr    string `json:"listenAddr"`
+	DaysDomainExp int    `json:"remindDomainExpDays"`
+	EmailForExp   string `json:"to_email"`
+	FromEmail     string `json:"from_email"`
+	SMTPHost      string `json:"smtp_host"`
+	SMTP_USER     string `json:"SMTP_USER"`
+	SMTPPass      string `json:"SMTP_PASSWORD"`
+	SMTPPort      int    `json:"smtp_port"`
+	BaseURL       string `json:"baseURL"`
 }
 
 type LoginRequest struct {
@@ -12,28 +23,27 @@ type LoginRequest struct {
 }
 
 type DbUser struct {
-	ID        int
-	Username  string
-	Password  []byte
-	LastLogin int64
+	ID       int
+	Username string
+	Password []byte
 }
 
 type Session struct {
 	Token  string
 	UserID int
-	Expiry int64
+	Expiry time.Time
 }
 
 type Domain struct {
-	ID           int      `db:"id" json:"id"`
-	Domain       string   `db:"domain" json:"domain"`
-	Expiration   int64    `db:"expiration" json:"expiration"`
-	Nameservers  []string `db:"nameservers" json:"nameservers,omitempty"`
-	Registrar    string   `db:"registrar" json:"registrar"`
-	DNS          DNS      `db:"dns" json:"dns"`
-	ClientID     int      `db:"clientid" json:"clientID"`
-	RawWhoisData string   `db:"rawwhoisdata" json:"rawWhoisData"`
-	Notes        *string  `db:"notes" json:"notes,omitempty"`
+	ID           int       `db:"id" json:"id"`
+	Domain       string    `db:"domain" json:"domain"`
+	Expiration   time.Time `db:"expiration" json:"expiration"`
+	Nameservers  []string  `db:"nameservers" json:"nameservers,omitempty"`
+	Registrar    string    `db:"registrar" json:"registrar"`
+	DNS          DNS       `db:"dns" json:"dns"`
+	ClientID     int       `db:"clientid" json:"clientID"`
+	RawWhoisData string    `db:"rawwhoisdata" json:"rawWhoisData"`
+	Notes        *string   `db:"notes" json:"notes,omitempty"`
 }
 
 type Client struct {
@@ -43,6 +53,12 @@ type Client struct {
 
 type DomainReqBody struct {
 	Domain   string `json:"domain" binding:"required"`
+	ClientID int    `json:"clientID" binding:"required"`
+	Notes    string `json:"notes,omitempty"`
+}
+
+type EditReqBody struct {
+	ID       int    `json:"id" binding:"required"`
 	ClientID int    `json:"clientID" binding:"required"`
 	Notes    string `json:"notes,omitempty"`
 }

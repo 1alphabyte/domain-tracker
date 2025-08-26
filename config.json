@@ -1,5 +1,14 @@
 {
-	"databaseURL": "postgres://user:example@localhost:5432/domaintrk",
+	"databaseURL": "postgres://user:example@db:5432/domaintrk",
 	"initUser": "admin",
-	"initPassword": "example123"
+	"initPassword": "example123",
+	"listenAddr": "127.0.0.1:8746",
+	"remindDomainExpDays": 25,
+	"to_email": "exp@example.com",
+	"from_email": "domaintrk@example.com",
+	"smtp_host": "smtp.example.org",
+	"SMTP_USER": "example",
+	"SMTP_PASSWORD": "example123",
+	"smtp_port": 465,
+	"baseURL": "https://domaintrk.domain.tld"
 }
