@@ -3,6 +3,7 @@ module utsav2.dev/domain-tracker
 go 1.24.6
 
 require (
+	github.com/dustin/go-humanize v1.0.1
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/likexian/whois v1.15.6
 	github.com/likexian/whois-parser v1.24.20

@@ -22,7 +22,16 @@ async function loadDomains() {
 				return null;
 			}
 		})
-	let clients = await fetch("/api/clientList").then((res) => res.ok ? res.json() : null);
+	let clients = await fetch("/api/clientList").then((res) => {
+		if (res.status === 200) {
+			return res.json();
+		} else if (res.status == 204) {
+			return [];
+		} else {
+			console.error(res);
+			return null;
+		}
+	});
 
 	if (!domains || !clients) {
 		document.querySelector("body").innerHTML = "<h1>An error occurred and Domain tracker is unable to proceed</h1><br /><h2>Please try again later</h2><br /><p>See the browser console for more information</p>";

@@ -383,17 +383,12 @@ func main() {
 	InitDBSetup()
 
 	// Backgrounds tasks using a goroutine and ticker
-	go func() {
-		ticker := time.NewTicker(25 * time.Hour)
-		for range ticker.C {
-			dbCleanup()
-		}
-	}()
-
-	// Send weekly expiration reminders
+	// Send weekly expiration reminders and update domain info
+	// Runs every 7 days
 	go func() {
 		ticker := time.NewTicker(7 * 24 * time.Hour)
 		for range ticker.C {
+			dbCleanup()
 			updateDomains()
 			sendExpDomReminders()
 		}

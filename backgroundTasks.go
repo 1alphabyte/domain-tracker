@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/jackc/pgx/v5"
 	"github.com/wneessen/go-mail"
 )
@@ -22,9 +23,8 @@ func dbCleanup() {
 }
 
 func updateDomains() {
-	// Get all domains
 	db := setupDatabase()
-
+	// Get all domains
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
 		log.Printf("Failed to get domains: %v\n", err)
@@ -32,16 +32,20 @@ func updateDomains() {
 	}
 	defer rows.Close()
 
+	// Collect rows into a slice of Domain structs
 	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
 	if err != nil {
 		log.Printf("Failed to collect domains: %v\n", err)
 		return
 	}
+
+	// Iterate over each domain and check expiration
 	for _, d := range domains {
 		// get stored expiration date
-		currTime := time.Now().UTC().AddDate(0, 0, getConfig().DaysDomainExp)
+		currTime := time.Now().AddDate(0, 0, getConfig().DaysDomainExp)
 
 		// Check if the domain expires within the configured reminder period
+		// If it does, refresh its data
 		if currTime.After(d.Expiration) {
 			log.Printf("Refreshing domain: %s\n", d.Domain)
 			exp, ns, reg, rawData, dns, err := fetchDomainData(d.Domain)
@@ -56,6 +60,8 @@ func updateDomains() {
 				log.Printf("Failed to update domain %s: %v\n", d.Domain, err)
 				continue
 			}
+
+			// TSK: consider for removal
 			log.Printf("Updated domain: %s\n", d.Domain)
 		}
 	}
@@ -77,10 +83,12 @@ func sendExpDomReminders() {
 		log.Printf("Failed to collect domains: %v\n", err)
 		return
 	}
+	// Array to hold domains needing reminders
 	var needReminder []Domain
 
+	// Populate the array
 	for _, d := range domains {
-		currTime := time.Now().UTC().AddDate(0, 0, getConfig().DaysDomainExp)
+		currTime := time.Now().AddDate(0, 0, getConfig().DaysDomainExp)
 
 		// Check if the domain expires within the configured reminder period
 		if currTime.After(d.Expiration) {
@@ -106,15 +114,17 @@ func sendExpDomReminders() {
 		for _, d := range needReminder {
 			// check if less then half the reminder period is remaining
 			var inDurStr string
-			threshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 2
-			// if less then half the reminder period is remaining, make it red
-			if time.Until(d.Expiration) < threshold {
-				inDurStr = fmt.Sprintf("<b style='color: red;'>%s</b>", time.Until(d.Expiration).String())
+			warningThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 2
+			critThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 3
+			if time.Until(d.Expiration) < critThreshold {
+				inDurStr = fmt.Sprintf("<b style='color: red;'>%s</b>⚠️", humanize.Time(d.Expiration))
+			} else if time.Until(d.Expiration) < warningThreshold {
+				inDurStr = fmt.Sprintf("<span style='color: orange;'>%s</span>", humanize.Time(d.Expiration))
 			} else {
-				inDurStr = time.Until(d.Expiration).String()
+				inDurStr = humanize.Time(d.Expiration)
 			}
 			// add to the list
-			domainList += fmt.Sprintf("<li><a href='%s/dash/?q=%s'>%s</a> is expiring on %s (in %s)</li>", getConfig().BaseURL, d.Domain, d.Domain, d.Expiration.Format("01/02/2006"), inDurStr)
+			domainList += fmt.Sprintf("<li><a href='%s/dash/?q=%s'>%s</a> is expiring on %s (in %s)</li>", getConfig().BaseURL, d.Domain, d.Domain, d.Expiration.Format("01/02/2006 @ 03:04:05PM"), inDurStr)
 		}
 	}
 
