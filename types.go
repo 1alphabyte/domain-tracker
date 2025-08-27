@@ -64,9 +64,10 @@ type EditReqBody struct {
 }
 
 type DNS struct {
-	A    string `json:"a"`
-	AAAA string `json:"aaaa"`
-	MX   string `json:"mx"`
+	A    []string `json:"a"`
+	AAAA []string `json:"aaaa"`
+	MX   []string `json:"mx"`
+	NS   []string `json:"ns"`
 }
 
 type DNSQuestion struct {
@@ -91,4 +92,11 @@ type GoogDNSResponse struct {
 	Question []DNSQuestion
 	Answer   []DNSAnswer
 	Comment  string
+}
+
+type NSChange struct {
+	Domain    string    `json:"domain"`
+	OldNS     []string  `json:"oldNS"`
+	NewNS     []string  `json:"newNS"`
+	CheckedAt time.Time `json:"checkedAt"`
 }

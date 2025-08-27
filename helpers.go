@@ -15,6 +15,7 @@ import (
 	"github.com/likexian/whois"
 	whoisparser "github.com/likexian/whois-parser"
 	"github.com/openrdap/rdap"
+	"github.com/wneessen/go-mail"
 )
 
 func getConfig() Config {
@@ -60,29 +61,29 @@ func checkSessionToken(r *http.Request) (int, error) {
 	return session.UserID, nil
 }
 
-func ResolveDNS(domain string, class string) string {
+func ResolveDNS(domain string, class string) []string {
 	dnsRes, err := http.Get("https://dns.google/resolve?name=" + domain + "&type=" + class)
 	if err != nil {
 		log.Print(err)
-		return "<error>"
+		return []string{"<error>"}
 	}
 	defer dnsRes.Body.Close()
 	var DNSResponse GoogDNSResponse
 	if err := json.NewDecoder(dnsRes.Body).Decode(&DNSResponse); err != nil {
 		log.Print(err)
-		return "<error>"
+		return []string{"<error>"}
 	}
 	if DNSResponse.Status == 0 {
 		Records := make([]string, 0, len(DNSResponse.Answer))
 		for _, ans := range DNSResponse.Answer {
 			Records = append(Records, ans.Data)
 		}
-		return strings.Join(Records, ",")
+		return Records
 	}
-	return ""
+	return []string{}
 }
 
-func fetchDomainData(domain string) (exp time.Time, ns string, reg string, rawData string, dns DNS, err error) {
+func fetchDomainData(domain string) (exp time.Time, ns []string, reg string, rawData string, dns DNS, err error) {
 	client := &rdap.Client{}
 
 	query, err := client.QueryDomain(domain)
@@ -92,12 +93,12 @@ func fetchDomainData(domain string) (exp time.Time, ns string, reg string, rawDa
 		result, err := whois.Whois(domain)
 		if err != nil {
 			log.Println(err)
-			return time.Time{}, "", "", "", DNS{}, err
+			return time.Time{}, []string{}, "", "", DNS{}, err
 		}
 		res, err := whoisparser.Parse(result)
 		if err != nil {
 			log.Println(err)
-			return time.Time{}, "", "", "", DNS{}, err
+			return time.Time{}, []string{}, "", "", DNS{}, err
 		}
 
 		exp = *res.Domain.ExpirationDateInTime
@@ -105,8 +106,7 @@ func fetchDomainData(domain string) (exp time.Time, ns string, reg string, rawDa
 		nameservers := make([]string, 0, len(res.Domain.NameServers))
 		nameservers = append(nameservers, res.Domain.NameServers...)
 
-		jsonNs, _ := json.Marshal(nameservers)
-		ns = string(jsonNs)
+		ns = nameservers
 		reg = res.Registrar.Name
 		mRawData, e := json.Marshal(res)
 		if e != nil {
@@ -122,7 +122,7 @@ func fetchDomainData(domain string) (exp time.Time, ns string, reg string, rawDa
 				exp, err = time.Parse(time.RFC3339, query.Events[i].Date)
 				if err != nil {
 					log.Print(err)
-					return time.Time{}, "", "", "", DNS{}, err
+					return time.Time{}, []string{}, "", "", DNS{}, err
 				}
 				break
 			}
@@ -133,8 +133,7 @@ func fetchDomainData(domain string) (exp time.Time, ns string, reg string, rawDa
 		for _, ns := range query.Nameservers {
 			nameservers = append(nameservers, ns.LDHName)
 		}
-		jsonNs, _ := json.Marshal(nameservers)
-		ns = string(jsonNs)
+		ns = nameservers
 
 		// Get registrar
 		for _, entity := range query.Entities {
@@ -159,6 +158,49 @@ func fetchDomainData(domain string) (exp time.Time, ns string, reg string, rawDa
 		A:    ResolveDNS(domain, "A"),
 		AAAA: ResolveDNS(domain, "AAAA"),
 		MX:   ResolveDNS(domain, "MX"),
+		NS:   ResolveDNS(domain, "NS"),
 	}
+
 	return exp, ns, reg, rawData, dns, nil
+}
+
+func sendEmail(subj string, body string) error {
+	message := mail.NewMsg(mail.WithNoDefaultUserAgent())
+	if err := message.From(getConfig().FromEmail); err != nil {
+		log.Print("failed to set From address:", err)
+	}
+	if err := message.ToFromString(getConfig().EmailForExp); err != nil {
+		log.Print("failed to set To address:", err)
+	}
+	message.SetMessageIDWithValue(generateSessionToken() + "@domain-tracker")
+	message.SetGenHeader("X-Mailer", "utsav2.dev/domain-tracker/v2 (https://github.com/1alphabyte/domain-tracker)")
+	message.Subject(subj)
+
+	message.SetBodyString(mail.TypeTextHTML, body)
+
+	// --- Create the client ---
+	c, err := mail.NewClient(
+		getConfig().SMTPHost,
+		mail.WithPort(getConfig().SMTPPort),
+		mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		mail.WithUsername(getConfig().SMTP_USER),
+		mail.WithPassword(getConfig().SMTPPass),
+		mail.WithSSL(),
+	)
+	if err != nil {
+		return err
+	}
+	// Send the email
+	if err := c.DialAndSend(message); err != nil {
+		return err
+	}
+	return nil
+}
+
+func TrimDot(ns []string) []string {
+	normalized := make([]string, len(ns))
+	for i, s := range ns {
+		normalized[i] = strings.TrimSuffix(s, ".")
+	}
+	return normalized
 }

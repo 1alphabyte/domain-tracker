@@ -394,6 +394,15 @@ func main() {
 		}
 	}()
 
+	// Check nameservers every 24 hours
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		for range ticker.C {
+			detectNameserverChanges()
+		}
+	}()
+
+	// Set up HTTP routes
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/login", loginHandler)

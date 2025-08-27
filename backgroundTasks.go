@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/jackc/pgx/v5"
-	"github.com/wneessen/go-mail"
 )
 
 func dbCleanup() {
@@ -97,14 +98,7 @@ func sendExpDomReminders() {
 	}
 
 	log.Printf("Sending expiration reminder for %d domains", len(needReminder))
-	message := mail.NewMsg()
-	if err := message.From(getConfig().FromEmail); err != nil {
-		log.Print("failed to set From address:", err)
-	}
-	if err := message.To(getConfig().EmailForExp); err != nil {
-		log.Fatal("failed to set To address:", err)
-	}
-	message.Subject("Domains expiring soon")
+
 	var domainList string
 
 	if len(needReminder) == 0 {
@@ -128,8 +122,7 @@ func sendExpDomReminders() {
 		}
 	}
 
-	// --- Create the email message ---
-	message.SetBodyString(mail.TypeTextHTML, fmt.Sprintf(`
+	err = sendEmail("Domains expiring soon", fmt.Sprintf(`
 				<h3>The following domain(s) are expiring within the next %d days:</h3>
 				<p>Click a domain to view it in Domain Tracker</p>
 				<ul>
@@ -140,21 +133,94 @@ func sendExpDomReminders() {
 					Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.
 				</footer>
 			`, getConfig().DaysDomainExp, domainList))
-
-	// --- Create the client ---
-	c, err := mail.NewClient(
-		getConfig().SMTPHost,
-		mail.WithPort(getConfig().SMTPPort),
-		mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithUsername(getConfig().SMTP_USER),
-		mail.WithPassword(getConfig().SMTPPass),
-		mail.WithSSL(),
-	)
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		log.Printf("Failed to send expiration reminder email: %v\n", err)
 	}
-	// Send the email
-	if err := c.DialAndSend(message); err != nil {
-		log.Fatalf("Failed to send email: %v", err)
+}
+
+func detectNameserverChanges() {
+	db := setupDatabase()
+
+	// Get all domains
+	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
+	if err != nil {
+		log.Printf("Failed to get domains: %v\n", err)
+		return
+	}
+	defer rows.Close()
+
+	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
+	if err != nil {
+		log.Printf("Failed to collect domains: %v\n", err)
+		return
+	}
+
+	// Array to store changes
+	var NSChanges []NSChange
+	for _, d := range domains {
+		ns := d.Nameservers
+		if len(ns) == 0 {
+			continue
+		}
+		// Fetch new nameserver
+		newNs := ResolveDNS(d.Domain, "NS")
+
+		// Compare old and new nameservers
+
+		slices.Sort(newNs)
+		slices.Sort(ns)
+
+		newNs = TrimDot(newNs)
+		ns = TrimDot(ns)
+
+		// Check if there is a change
+		googChange := !slices.Equal(ns, newNs)
+
+		if googChange {
+			// Store the change
+			NSChanges = append(NSChanges, NSChange{
+				Domain:    d.Domain,
+				OldNS:     ns,
+				NewNS:     newNs,
+				CheckedAt: time.Now(),
+			})
+
+			// Update the database with the new nameservers
+			_, err = db.Exec(context.TODO(), "UPDATE domains SET nameservers = $1 WHERE id = $2", newNs, d.ID)
+			if err != nil {
+				log.Printf("Failed to update nameservers for domain %s: %v\n", d.Domain, err)
+				continue
+			}
+		}
+	}
+
+	if len(NSChanges) == 0 {
+		log.Println("No nameserver changes detected.")
+		return
+	}
+
+	// Send a alert of the change
+	var listChanges string
+	for _, change := range NSChanges {
+		listChanges += fmt.Sprintf("<li><b>%s</b><br />Old NS: %s<br />New NS: %s<br />Checked At: %s</li><br />",
+			change.Domain,
+			strings.Join(change.OldNS, ", "),
+			strings.Join(change.NewNS, ", "),
+			change.CheckedAt.Format("01/02/2006 @ 03:04:05PM"),
+		)
+	}
+
+	err = sendEmail("Domain nameserver changes detected", fmt.Sprintf(`
+				<h3>The following domains' nameserver have changed:</h3>
+				<ul>
+					%s
+				</ul>
+				<br />
+				<footer style='font-size: smaller;'>
+					Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.
+				</footer>
+			`, listChanges))
+	if err != nil {
+		log.Printf("Failed to send nameserver change alert email: %v\n", err)
 	}
 }

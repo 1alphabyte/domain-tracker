@@ -82,14 +82,14 @@ async function loadDomains() {
 		exp.textContent = new Date(d.expiration).toLocaleDateString();
 		ns.textContent = d.nameservers ? d.nameservers.join(", ") : "None ❌";
 		let dnsD = d.dns;
-		dnsD.a ? aDNS.textContent = dnsD.a : aDNS.textContent = "None ❌";
-		dnsD.aaaa ? aaaaDNS.textContent = dnsD.aaaa : aaaaDNS.textContent = "None ❌";
+		dnsD.a ? aDNS.textContent = dnsD.a.join(", ") : aDNS.textContent = "None ❌";
+		dnsD.aaaa ? aaaaDNS.textContent = dnsD.aaaa.join(", ") : aaaaDNS.textContent = "None ❌";
 		let mxClickable = false;
-		if (dnsD.mx.split(",").length > 1) {
+		if (dnsD.mx.length > 1) {
 			mxDNS.textContent = "View";
 			mxClickable = true;
 		} else if (dnsD.mx) {
-			mxDNS.textContent = dnsD.mx;
+			mxDNS.textContent = dnsD.mx.join();
 		} else {
 			mxDNS.textContent = "None ❌";
 		}
@@ -108,7 +108,7 @@ async function loadDomains() {
 				let d = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].dns;
 				let diag = document.getElementById("rawDataDiag");
 				document.getElementById("rawDataDiagHeader").textContent = "DNS: MX records";
-				document.getElementById("rawData").textContent = d.mx.split(",").sort((a, b) => a.split(" ")[0] - b.split(" ")[0]).join("\n");
+				document.getElementById("rawData").textContent = d.mx.sort((a, b) => a.split(" ")[0] - b.split(" ")[0]).join("\n");
 				diag.showModal();
 			});
 		}
