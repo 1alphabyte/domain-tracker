@@ -137,7 +137,7 @@ func fetchDomainData(domain string) (exp time.Time, ns []string, reg string, raw
 
 		// Get registrar
 		for _, entity := range query.Entities {
-			if entity.Roles[0] == "registrar" {
+			if len(entity.Roles) > 0 && entity.Roles[0] == "registrar" {
 				reg = entity.VCard.Name()
 			}
 		}

@@ -39,7 +39,7 @@ async function loadDomains() {
 	}
 	clients.forEach((c) => {
 		let option = document.createElement("option");
-		option.value = c.ID;
+		option.value = c.id;
 		option.textContent = c.name;
 		dropdown.appendChild(option);
 		document.getElementById("Eclient").appendChild(option.cloneNode(true));
@@ -94,7 +94,7 @@ async function loadDomains() {
 			mxDNS.textContent = "None ❌";
 		}
 		reg.textContent = d.registrar;
-		client.textContent = clients.filter((c) => c.id == d.clientId)[0].name;
+		client.textContent = clients.find((c) => c.id == d.clientId).name;
 		raw.dataset.id = d.id;
 		raw.textContent = "View";
 		raw.className = "rawDataBtn";

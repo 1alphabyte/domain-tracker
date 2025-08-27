@@ -144,7 +144,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
-	c, err := db.Exec(context.TODO(), "UPDATE domains SET clientId = $1, notes = $2 WHERE id = $3", req.ClientID, req.Notes, req.ID)
+	c, err := db.Exec(context.TODO(), "UPDATE domains SET clientid = $1, notes = $2 WHERE id = $3", req.ClientID, req.Notes, req.ID)
 	if err != nil {
 		http.Error(w, "Failed to update domain", http.StatusInternalServerError)
 		log.Print(err)

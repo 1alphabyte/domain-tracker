@@ -2,7 +2,7 @@
 	"databaseURL": "postgres://user:example@db:5432/domaintrk",
 	"initUser": "admin",
 	"initPassword": "example123",
-	"listenAddr": "127.0.0.1:8746",
+	"listenAddr": "0.0.0.0:8746",
 	"remindDomainExpDays": 25,
 	"to_email": "exp@example.com",
 	"from_email": "domaintrk@example.com",
