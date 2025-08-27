@@ -1,4 +1,4 @@
-module utsav2.dev/domain-tracker/v2
+module utsav2.dev/domain-tracker/v3
 
 go 1.24.6
 

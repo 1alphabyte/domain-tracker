@@ -173,7 +173,7 @@ func sendEmail(subj string, body string) error {
 		log.Print("failed to set To address:", err)
 	}
 	message.SetMessageIDWithValue(generateSessionToken() + "@domain-tracker")
-	message.SetGenHeader("X-Mailer", "utsav2.dev/domain-tracker/v2 (https://github.com/1alphabyte/domain-tracker)")
+	message.SetGenHeader("X-Mailer", "utsav2.dev/domain-tracker/v3 (https://github.com/1alphabyte/domain-tracker)")
 	message.Subject(subj)
 
 	message.SetBodyString(mail.TypeTextHTML, body)
