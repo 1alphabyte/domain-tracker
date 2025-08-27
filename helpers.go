@@ -47,6 +47,7 @@ func checkSessionToken(r *http.Request) (int, error) {
 
 	// Get the database connection
 	db := setupDatabase()
+	defer db.Close(context.Background())
 
 	var session Session
 	err = db.QueryRow(context.TODO(), "SELECT userId, expires FROM sessions WHERE token = $1", cookie.Value).Scan(&session.UserID, &session.Expiry)

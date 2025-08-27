@@ -33,6 +33,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
+	defer db.Close(context.Background())
 	// Find the user with the username in the DB
 	var user DbUser
 	err := db.QueryRow(context.TODO(), "SELECT id, password FROM users WHERE username = $1", loginReq.Username).Scan(&user.ID, &user.Password)
@@ -84,6 +85,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
+	defer db.Close(context.Background())
 	// Get all rows from the domains SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -144,6 +146,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
+	defer db.Close(context.Background())
 	c, err := db.Exec(context.TODO(), "UPDATE domains SET clientid = $1, notes = $2 WHERE id = $3", req.ClientID, req.Notes, req.ID)
 	if err != nil {
 		http.Error(w, "Failed to update domain", http.StatusInternalServerError)
@@ -196,6 +199,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
+	defer db.Close(context.Background())
 	// Insert the new domain into the DB
 	_, err = db.Exec(context.TODO(), "INSERT INTO domains (domain, expiration, nameservers, registrar, dns, clientid, rawwhoisdata, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		domain.Domain,
@@ -231,6 +235,7 @@ func clientListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
+	defer db.Close(context.Background())
 	// Get all rows from the clients SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM clients")
 	if err != nil {
@@ -289,6 +294,7 @@ func clientAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
+	defer db.Close(context.Background())
 	_, err = db.Exec(context.TODO(), "INSERT INTO clients (name) VALUES ($1)", client.Name)
 	if err != nil {
 		http.Error(w, "Failed to add client", http.StatusInternalServerError)
@@ -325,7 +331,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
-
+	defer db.Close(context.Background())
 	c, err := db.Exec(context.TODO(), "DELETE FROM domains WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete domain", http.StatusInternalServerError)
@@ -364,7 +370,7 @@ func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db := setupDatabase()
-
+	defer db.Close(context.Background())
 	c, err := db.Exec(context.TODO(), "DELETE FROM clients WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete client", http.StatusInternalServerError)

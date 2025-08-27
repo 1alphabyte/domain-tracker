@@ -14,6 +14,7 @@ import (
 
 func dbCleanup() {
 	db := setupDatabase()
+	defer db.Close(context.Background())
 
 	// Delete expired sessions
 	delSess, err := db.Exec(context.TODO(), "DELETE FROM sessions WHERE expires < $1", time.Now())
@@ -25,6 +26,7 @@ func dbCleanup() {
 
 func updateDomains() {
 	db := setupDatabase()
+	defer db.Close(context.Background())
 	// Get all domains
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -70,7 +72,7 @@ func updateDomains() {
 
 func sendExpDomReminders() {
 	db := setupDatabase()
-
+	defer db.Close(context.Background())
 	// Get all domains
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -140,7 +142,7 @@ func sendExpDomReminders() {
 
 func detectNameserverChanges() {
 	db := setupDatabase()
-
+	defer db.Close(context.Background())
 	// Get all domains
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {

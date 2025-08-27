@@ -39,7 +39,7 @@ async function loadDomains() {
 	}
 	clients.forEach((c) => {
 		let option = document.createElement("option");
-		option.value = c.id;
+		option.value = c.ID;
 		option.textContent = c.name;
 		dropdown.appendChild(option);
 		document.getElementById("Eclient").appendChild(option.cloneNode(true));
