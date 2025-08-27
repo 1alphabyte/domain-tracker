@@ -6,7 +6,7 @@ async function loadDomains() {
 
 	let domains = await fetch("/api/get")
 		.then((res) => {
-			if (res.ok) {
+			if (res.status === 200) {
 				return res.json();
 			} else if (res.status == 401) {
 				alert("Unauthorized");
@@ -15,12 +15,23 @@ async function loadDomains() {
 					location.assign(`/login/?q=${searchParms.get("q")}`);
 				else
 					location.assign("/login/");
+			} else if (res.status == 204) {
+				return [];
 			} else {
 				console.error(res);
 				return null;
 			}
 		})
-	let clients = await fetch("/api/clientList").then((res) => res.ok ? res.json() : null);
+	let clients = await fetch("/api/clientList").then((res) => {
+		if (res.status === 200) {
+			return res.json();
+		} else if (res.status == 204) {
+			return [];
+		} else {
+			console.error(res);
+			return null;
+		}
+	});
 
 	if (!domains || !clients) {
 		document.querySelector("body").innerHTML = "<h1>An error occurred and Domain tracker is unable to proceed</h1><br /><h2>Please try again later</h2><br /><p>See the browser console for more information</p>";
@@ -28,7 +39,7 @@ async function loadDomains() {
 	}
 	clients.forEach((c) => {
 		let option = document.createElement("option");
-		option.value = c.id;
+		option.value = c.ID;
 		option.textContent = c.name;
 		dropdown.appendChild(option);
 		document.getElementById("Eclient").appendChild(option.cloneNode(true));
@@ -69,27 +80,35 @@ async function loadDomains() {
 		domain.appendChild(edit);
 		domain.appendChild(deleteBtn);
 		exp.textContent = new Date(d.expiration).toLocaleDateString();
-		ns.textContent = d.nameservers.split(",").join(", ");
-		let dnsD = JSON.parse(d.dns);
-		dnsD.a ? aDNS.textContent = dnsD.a : aDNS.textContent = "None ❌";
-		dnsD.aaaa ? aaaaDNS.textContent = dnsD.aaaa : aaaaDNS.textContent = "None ❌";
-		mxDNS.textContent = dnsD.mx ? "View" : "None ❌";
+		ns.textContent = d.nameservers ? d.nameservers.join(", ") : "None ❌";
+		let dnsD = d.dns;
+		dnsD.a ? aDNS.textContent = dnsD.a.join(", ") : aDNS.textContent = "None ❌";
+		dnsD.aaaa ? aaaaDNS.textContent = dnsD.aaaa.join(", ") : aaaaDNS.textContent = "None ❌";
+		let mxClickable = false;
+		if (dnsD.mx.length > 1) {
+			mxDNS.textContent = "View";
+			mxClickable = true;
+		} else if (dnsD.mx) {
+			mxDNS.textContent = dnsD.mx.join();
+		} else {
+			mxDNS.textContent = "None ❌";
+		}
 		reg.textContent = d.registrar;
-		client.textContent = clients.filter((c) => c.id == d.clientId)[0].name;
+		client.textContent = clients.find((c) => c.id == d.clientId).name;
 		raw.dataset.id = d.id;
 		raw.textContent = "View";
 		raw.className = "rawDataBtn";
 		notes.textContent = d.notes ? "View" : "None ❌";
 
-		if (dnsD.mx) {
+		if (mxClickable) {
 			mxDNS.classList.add("rawDataBtn");
 			mxDNS.dataset.id = d.id;
 			mxDNS.addEventListener("click", (e) => {
 				let id = e.target.dataset.id;
-				let d = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].mx;
+				let d = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0].dns;
 				let diag = document.getElementById("rawDataDiag");
 				document.getElementById("rawDataDiagHeader").textContent = "DNS: MX records";
-				document.getElementById("rawData").textContent = dnsD.mx.sort((a, b) => a.split(" ")[0] - b.split(" ")[0]).join("\n");
+				document.getElementById("rawData").textContent = d.mx.sort((a, b) => a.split(" ")[0] - b.split(" ")[0]).join("\n");
 				diag.showModal();
 			});
 		}
@@ -122,15 +141,11 @@ async function loadDomains() {
 			let id = e.target.dataset.id;
 			document.getElementById('editDDiag').showModal();
 			let notes = document.getElementById("Enotes");
-			let clientId = document.getElementById("Eclient");
-			let exp = document.getElementById("Expiration");
-			let nameservers = document.getElementById("Nameservers");
+			let clientID = document.getElementById("Eclient");
 			let currentDomain = JSON.parse(sessionStorage.getItem("domains")).filter((d) => d.id == id)[0];
 			notes.value = currentDomain.notes;
-			clientId.value = currentDomain.clientId;
+			clientID.value = currentDomain.clientID;
 			document.getElementById("Edomain").textContent = currentDomain.domain;
-			exp.value = new Date(currentDomain.expiration).toISOString().split("T")[0];
-			nameservers.value = currentDomain.nameservers;
 			document.getElementById("editDForm").dataset.id = id;
 		});
 
@@ -204,7 +219,7 @@ function main() {
 		document.getElementById("addDForm").reset();
 		fetch("/api/add", {
 			method: "POST",
-			body: JSON.stringify({ domain, clientId, notes }),
+			body: JSON.stringify({ domain, clientID: parseInt(clientId), notes }),
 		}).then((res) => {
 			if (res.ok) {
 				alert("Domain added");
@@ -256,10 +271,8 @@ function main() {
 		fetch("/api/edit", {
 			method: "POST",
 			body: JSON.stringify({
-				id: e.target.dataset.id,
-				clientId: document.getElementById("Eclient").value,
-				expiration: document.getElementById("Expiration").value,
-				nameservers: document.getElementById("Nameservers").value,
+				id: parseInt(e.target.dataset.id),
+				clientId: parseInt(document.getElementById("Eclient").value),
 				notes: document.getElementById("Enotes").value,
 			}),
 		}).then((res) => {

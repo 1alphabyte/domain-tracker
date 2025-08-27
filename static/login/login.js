@@ -14,12 +14,18 @@ if (localStorage.getItem("auth")) {
 					location.assign(`/dash/?q=${searchParms.get("q")}`);
 				else
 					location.assign("/dash/");
-			} else if (res.status === 403) {
-				alert("Invalid username or password");
+			} else if (res.status === 403 || res.status === 401) {
+				document.getElementById("error-message").innerHTML = "Invalid username or password. <br /> Please try again.";
+				document.getElementById("error-dialog").showModal();
 			} else {
-				alert("An error occurred");
+				document.getElementById("error-message").innerHTML = "Something went wrong. <br /> Please try again later.";
+				document.getElementById("error-dialog").showModal();
 			}
 		});
 	});
 	console.info("Made with ❤️ by @1alphabyte https://github.com/1alphabyte");
 }
+
+document.getElementById("close-dialog").addEventListener("click", () => {
+	document.getElementById("error-dialog").close();
+});
