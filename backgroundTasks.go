@@ -108,7 +108,7 @@ func sendExpDomReminders() {
 		return
 	} else {
 		for _, d := range needReminder {
-			// check if less then half the reminder period is remaining
+			// check if less than half the reminder period is remaining
 			var inDurStr string
 			warningThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 2
 			critThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 3
@@ -125,6 +125,13 @@ func sendExpDomReminders() {
 	}
 
 	err = sendEmail("Domains expiring soon", fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+			<head>
+  				<meta charset="UTF-8">
+  				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  			</head>
+			<body>
 				<h3>The following domain(s) are expiring within the next %d days:</h3>
 				<p>Click a domain to view it in Domain Tracker</p>
 				<ul>
@@ -134,7 +141,8 @@ func sendExpDomReminders() {
 				<footer style='font-size: smaller;'>
 					Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.
 				</footer>
-			`, getConfig().DaysDomainExp, domainList))
+			</body>
+		</html>`, getConfig().DaysDomainExp, domainList))
 	if err != nil {
 		log.Printf("Failed to send expiration reminder email: %v\n", err)
 	}
@@ -213,6 +221,13 @@ func detectNameserverChanges() {
 	}
 
 	err = sendEmail("Domain nameserver changes detected", fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+			<head>
+  				<meta charset="UTF-8">
+  				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  			</head>
+			<body>
 				<h3>The following domains' nameserver have changed:</h3>
 				<ul>
 					%s
@@ -221,7 +236,8 @@ func detectNameserverChanges() {
 				<footer style='font-size: smaller;'>
 					Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.
 				</footer>
-			`, listChanges))
+			</body>
+		</html>`, listChanges))
 	if err != nil {
 		log.Printf("Failed to send nameserver change alert email: %v\n", err)
 	}

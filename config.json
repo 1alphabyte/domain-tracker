@@ -10,5 +10,6 @@
 	"SMTP_USER": "example",
 	"SMTP_PASSWORD": "example123",
 	"smtp_port": 465,
-	"baseURL": "https://domaintrk.domain.tld"
+	"baseURL": "https://domaintrk.domain.tld",
+	"dbInitFile": "/data/.dbinit"
 }

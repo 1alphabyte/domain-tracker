@@ -11,7 +11,7 @@ import (
 
 func InitDBSetup() {
 	// check if the database has already been initialized
-	if _, err := os.Stat(".dbinit"); err == nil {
+	if _, err := os.Stat(getConfig().DBInitFile); err == nil {
 		// Database has already been initialized
 		return
 	}
@@ -100,8 +100,8 @@ func InitDBSetup() {
 	}
 
 	// Create a file to indicate that the database has been initialized
-	if err := os.WriteFile(".dbinit", []byte{}, 0644); err != nil {
-		log.Fatalf("Failed to create .dbinit file: %v\n", err)
+	if err := os.WriteFile(getConfig().DBInitFile, []byte{}, 0644); err != nil {
+		log.Fatalf("Failed to create db init file (check cfg): %v\n", err)
 	}
 }
 

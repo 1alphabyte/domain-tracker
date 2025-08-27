@@ -15,6 +15,7 @@ type Config struct {
 	SMTPPass      string `json:"SMTP_PASSWORD"`
 	SMTPPort      int    `json:"smtp_port"`
 	BaseURL       string `json:"baseURL"`
+	DBInitFile    string `json:"dbInitFile"`
 }
 
 type LoginRequest struct {
