@@ -4,7 +4,8 @@ services:
     image: ghcr.io/1alphabyte/domain-tracker:latest
     container_name: domaintrk
     depends_on:
-      - db
+      db:
+        condition: "service_healthy"
     volumes:
       - ./data:/data/
       - ./config.json:/app/config.json

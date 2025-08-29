@@ -77,7 +77,7 @@ func ResolveDNS(domain string, class string) []string {
 	if DNSResponse.Status == 0 {
 		Records := make([]string, 0, len(DNSResponse.Answer))
 		for _, ans := range DNSResponse.Answer {
-			Records = append(Records, ans.Data)
+			Records = append(Records, strings.ToLower(ans.Data))
 		}
 		return Records
 	}
@@ -105,7 +105,9 @@ func fetchDomainData(domain string) (exp time.Time, ns []string, reg string, raw
 		exp = *res.Domain.ExpirationDateInTime
 		// Get nameservers
 		nameservers := make([]string, 0, len(res.Domain.NameServers))
-		nameservers = append(nameservers, res.Domain.NameServers...)
+		for _, ns := range res.Domain.NameServers {
+			nameservers = append(nameservers, strings.ToLower(ns))
+		}
 
 		ns = nameservers
 		reg = res.Registrar.Name
@@ -132,7 +134,7 @@ func fetchDomainData(domain string) (exp time.Time, ns []string, reg string, raw
 		// Get nameservers
 		nameservers := make([]string, 0, len(query.Nameservers))
 		for _, ns := range query.Nameservers {
-			nameservers = append(nameservers, ns.LDHName)
+			nameservers = append(nameservers, strings.ToLower(ns.LDHName))
 		}
 		ns = nameservers
 
