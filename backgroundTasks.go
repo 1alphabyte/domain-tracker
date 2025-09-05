@@ -66,6 +66,7 @@ func updateDomains() {
 
 			// TSK: consider for removal
 			log.Printf("Updated domain: %s\n", d.Domain)
+			time.Sleep(15 * time.Second) // to avoid rate limiting
 		}
 	}
 }

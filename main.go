@@ -384,6 +384,32 @@ func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Allow all domains to be refreshed manually (no frontend for now must call the endpoint directly)
+func manRefHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Refresh all domains
+	go func() {
+		updateDomains()
+		sendExpDomReminders()
+	}()
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
 func main() {
 	// Initialize the database (create tables if they don't exist)
 	InitDBSetup()
@@ -418,6 +444,7 @@ func main() {
 	mux.HandleFunc("/api/clientList", clientListHandler)
 	mux.HandleFunc("/api/clientAdd", clientAddHandler)
 	mux.HandleFunc("/api/delete/", deleteHandler)
+	mux.HandleFunc("/api/refreshAll", manRefHandler)
 	mux.HandleFunc("/api/deleteClient", deleteClientHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
