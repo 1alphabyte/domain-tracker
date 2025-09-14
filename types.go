@@ -101,3 +101,14 @@ type NSChange struct {
 	NewNS     []string  `json:"newNS"`
 	CheckedAt time.Time `json:"checkedAt"`
 }
+
+type TLSDomain struct {
+	ID         int       `db:"id" json:"id"`
+	Domain     string    `db:"domain" json:"domain"`
+	CommonName string    `db:"commonname" json:"commonName"`
+	Expiration time.Time `db:"expiration" json:"expiration"`
+	Authority  string    `db:"authority" json:"authority,omitempty"`
+	ClientID   int       `db:"clientid" json:"clientID"`
+	RawData    string    `db:"rawdata" json:"rawData"`
+	Notes      *string   `db:"notes" json:"notes,omitempty"`
+}
