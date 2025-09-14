@@ -410,6 +410,148 @@ func manRefHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// Allow adding domain to track TLS certs
+func tlsAddHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Decode the JSON request body
+	var domain DomainReqBody
+	if err := json.NewDecoder(r.Body).Decode(&domain); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+	// Make sure the required fields are present
+	if domain.ClientID == 0 || domain.Domain == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	commonName, validTo, issuer, rawData, err := getTLSCert(domain.Domain)
+	if err != nil {
+		http.Error(w, "Failed to fetch TLS certificate", http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
+
+	db := setupDatabase()
+	defer db.Close(context.Background())
+	// Insert the new domain into the DB
+	_, err = db.Exec(context.TODO(), "INSERT INTO crts (domain, commonName, expiration, authority, clientId, rawData, notes) VALUES ($1, $2, $3, $4, $5, $6, $7);",
+		domain.Domain,
+		commonName,
+		validTo,
+		issuer,
+		domain.ClientID,
+		rawData,
+		domain.Notes,
+	)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Failed to add domain", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func tlsListHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	db := setupDatabase()
+	defer db.Close(context.Background())
+	// Get all rows from the crts SQL table
+	rows, err := db.Query(context.TODO(), "SELECT * FROM crts")
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+	defer rows.Close()
+
+	// Convert all rows to a array of JSON objects
+	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[TLSDomain])
+	if err != nil {
+		http.Error(w, "Error reading domains", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+
+	// Check if there are no domains
+	if len(domains) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	// Return the domains as JSON to the client
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(domains)
+}
+
+func deleteTLSHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "DELETE" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Extract the ID from the URL path
+	// Expected format: /api/delete/:id
+	id := strings.Split(r.URL.Path, "/")[3]
+	if id == "" {
+		http.Error(w, "Missing ID", http.StatusBadRequest)
+		return
+	}
+
+	db := setupDatabase()
+	defer db.Close(context.Background())
+	c, err := db.Exec(context.TODO(), "DELETE FROM crts WHERE id = $1", id)
+	if err != nil {
+		http.Error(w, "Failed to delete domain", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+	// Make sure the domain was found (and deleted)
+	if c.RowsAffected() == 0 {
+		http.Error(w, "Domain not found", http.StatusNotFound)
+		return
+	}
+}
+
 func main() {
 	// Initialize the database (create tables if they don't exist)
 	InitDBSetup()
@@ -423,6 +565,8 @@ func main() {
 			dbCleanup()
 			updateDomains()
 			sendExpDomReminders()
+			updateTLSCerts()
+			sendTLSExpirationReminders()
 		}
 	}()
 
@@ -446,6 +590,9 @@ func main() {
 	mux.HandleFunc("/api/delete/", deleteHandler)
 	mux.HandleFunc("/api/refreshAll", manRefHandler)
 	mux.HandleFunc("/api/deleteClient", deleteClientHandler)
+	mux.HandleFunc("/api/tlsAddDomain", tlsAddHandler)
+	mux.HandleFunc("/api/tlsList", tlsListHandler)
+	mux.HandleFunc("/api/tlsDelete/", deleteTLSHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

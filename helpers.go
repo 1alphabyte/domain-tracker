@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -206,4 +207,21 @@ func TrimDot(ns []string) []string {
 		normalized[i] = strings.TrimSuffix(s, ".")
 	}
 	return normalized
+}
+
+func getTLSCert(domain string) (CommonName string, validTo time.Time, issuer string, rawData []byte, err error) {
+	// Connect to the server of the domain on port 443 and get the TLS certificate
+	conn, err := tls.Dial("tcp", domain+":443", nil)
+	if err != nil {
+		return "", time.Time{}, "", nil, err
+	}
+	defer conn.Close()
+
+	// Get the certificate
+	cert := conn.ConnectionState().PeerCertificates[0]
+	certJSON, err := json.Marshal(cert)
+	if err != nil {
+		return "", time.Time{}, "", nil, err
+	}
+	return cert.Subject.CommonName, cert.NotAfter, cert.Issuer.CommonName, certJSON, nil
 }

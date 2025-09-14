@@ -6,8 +6,10 @@ async function loadDomains() {
 
 	let domains = await fetch("/api/tlsList")
 		.then((res) => {
-			if (res.ok) {
+			if (res.status == 200) {
 				return res.json();
+			} else if (res.status == 204) {
+				return [];
 			} else if (res.status == 401) {
 				alert("Unauthorized");
 				if (localStorage.getItem("auth")) localStorage.removeItem("auth");
@@ -19,15 +21,24 @@ async function loadDomains() {
 				return null;
 			}
 		})
-	let clients = await fetch("/api/clientList").then((res) => res.ok ? res.json() : null);
-
+		let clients = await fetch("/api/clientList")
+			.then((res) => {
+				if (res.status === 200) {
+					return res.json();
+				} else if (res.status == 204) {
+					return [];
+				} else {
+					console.error(res);
+					return null;
+				}
+			});
 	if (!domains || !clients) {
 		document.querySelector("body").innerHTML = "<h1>An error occurred and Domain tracker is unable to proceed</h1><br /><h2>Please try again later</h2><br /><p>See the browser console for more information</p>";
 		return;
 	}
 	clients.forEach((c) => {
 		let option = document.createElement("option");
-		option.value = c.id;
+		option.value = c.ID;
 		option.textContent = c.name;
 		dropdown.appendChild(option);
 	});
@@ -145,7 +156,7 @@ function main() {
 		document.getElementById("addDForm").reset();
 		fetch("/api/tlsAddDomain", {
 			method: "POST",
-			body: JSON.stringify({ domain, clientId, notes }),
+			body: JSON.stringify({ domain, clientId: parseInt(clientId), notes }),
 		}).then(async (res) => {
 			if (res.ok) {
 				alert("Domain added");
