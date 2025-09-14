@@ -327,7 +327,7 @@ func sendTLSExpirationReminders() {
 		}
 	}
 
-	err = sendEmail("Domains expiring soon", fmt.Sprintf(`
+	err = sendEmail("TLS certificates soon", fmt.Sprintf(`
 		<!DOCTYPE html>
 		<html>
 			<head>
