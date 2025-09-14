@@ -4,6 +4,7 @@
 	"initPassword": "example123",
 	"listenAddr": "0.0.0.0:8746",
 	"remindDomainExpDays": 25,
+	"remindCertExpDays": 15,
 	"to_email": "exp@example.com",
 	"from_email": "domaintrk@example.com",
 	"smtp_host": "smtp.example.org",

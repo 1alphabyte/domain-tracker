@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -441,20 +440,9 @@ func tlsAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Connect to the server of the domain on port 443 and get the TLS certificate
-	conn, err := tls.Dial("tcp", domain.Domain+":443", nil)
+	commonName, validTo, issuer, rawData, err := getTLSCert(domain.Domain)
 	if err != nil {
-		http.Error(w, "Failed to connect to domain on port 443", http.StatusInternalServerError)
-		log.Println(err)
-		return
-	}
-	defer conn.Close()
-
-	// Get the certificate
-	cert := conn.ConnectionState().PeerCertificates[0]
-	certJSON, err := json.Marshal(cert)
-	if err != nil {
-		http.Error(w, "Failed to marshal certificate", http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch TLS certificate", http.StatusInternalServerError)
 		log.Println(err)
 		return
 	}
@@ -464,11 +452,11 @@ func tlsAddHandler(w http.ResponseWriter, r *http.Request) {
 	// Insert the new domain into the DB
 	_, err = db.Exec(context.TODO(), "INSERT INTO crts (domain, commonName, expiration, authority, clientId, rawData, notes) VALUES ($1, $2, $3, $4, $5, $6, $7);",
 		domain.Domain,
-		cert.Subject.CommonName,
-		cert.NotAfter,
-		cert.Issuer.Organization[0],
+		commonName,
+		validTo,
+		issuer,
 		domain.ClientID,
-		certJSON,
+		rawData,
 		domain.Notes,
 	)
 	if err != nil {
@@ -577,6 +565,8 @@ func main() {
 			dbCleanup()
 			updateDomains()
 			sendExpDomReminders()
+			updateTLSCerts()
+			sendTLSExpirationReminders()
 		}
 	}()
 

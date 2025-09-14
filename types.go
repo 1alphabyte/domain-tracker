@@ -8,6 +8,7 @@ type Config struct {
 	InitUsr       string `json:"initUser"`
 	ListenAddr    string `json:"listenAddr"`
 	DaysDomainExp int    `json:"remindDomainExpDays"`
+	DaysCertExp   int    `json:"remindCertExpDays"`
 	EmailForExp   string `json:"to_email"`
 	FromEmail     string `json:"from_email"`
 	SMTPHost      string `json:"smtp_host"`
