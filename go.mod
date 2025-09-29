@@ -4,12 +4,12 @@ go 1.24.6
 
 require (
 	github.com/dustin/go-humanize v1.0.1
-	github.com/jackc/pgx/v5 v5.7.5
+	github.com/jackc/pgx/v5 v5.7.6
 	github.com/likexian/whois v1.15.6
 	github.com/likexian/whois-parser v1.24.20
 	github.com/openrdap/rdap v0.9.1
-	github.com/wneessen/go-mail v0.6.2
-	golang.org/x/crypto v0.41.0
+	github.com/wneessen/go-mail v0.7.2
+	golang.org/x/crypto v0.42.0
 )
 
 require (
@@ -20,6 +20,6 @@ require (
 	github.com/likexian/gokit v0.25.15 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 )
