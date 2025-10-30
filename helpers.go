@@ -67,13 +67,13 @@ func ResolveDNS(domain string, class string) []string {
 	dnsRes, err := http.Get("https://dns.google/resolve?name=" + domain + "&type=" + class)
 	if err != nil {
 		log.Print(err)
-		return []string{"<error>"}
+		return []string{}
 	}
 	defer dnsRes.Body.Close()
 	var DNSResponse GoogDNSResponse
 	if err := json.NewDecoder(dnsRes.Body).Decode(&DNSResponse); err != nil {
 		log.Print(err)
-		return []string{"<error>"}
+		return []string{}
 	}
 	if DNSResponse.Status == 0 {
 		Records := make([]string, 0, len(DNSResponse.Answer))

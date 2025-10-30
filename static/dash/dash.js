@@ -94,7 +94,7 @@ async function loadDomains() {
 			mxDNS.textContent = "None ❌";
 		}
 		reg.textContent = d.registrar;
-		client.textContent = clients.find((c) => c.id == d.clientId).name;
+		client.textContent = clients.find((c) => c.ID == d.clientID).name;
 		raw.dataset.id = d.id;
 		raw.textContent = "View";
 		raw.className = "rawDataBtn";

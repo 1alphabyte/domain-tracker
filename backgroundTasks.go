@@ -175,6 +175,10 @@ func detectNameserverChanges() {
 		}
 		// Fetch new nameserver
 		newNs := ResolveDNS(d.Domain, "NS")
+		if len(newNs) == 0 {
+			log.Printf("Failed to resolve NS for domain %s\n", d.Domain)
+			continue
+		}
 
 		// Compare old and new nameservers
 
