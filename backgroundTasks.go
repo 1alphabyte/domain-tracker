@@ -120,8 +120,16 @@ func sendExpDomReminders() {
 			} else {
 				inDurStr = humanize.Time(d.Expiration)
 			}
+			// Get client name
+			var client string
+			err = db.QueryRow(context.TODO(), "SELECT name FROM clients WHERE id = $1", d.ClientID).Scan(&client)
+			if err != nil {
+				log.Println("failed to get client", err)
+				client = ""
+			}
+
 			// add to the list
-			domainList += fmt.Sprintf("<li><a href='%s/dash/?q=%s'>%s</a> is expiring on %s (in %s)</li>", getConfig().BaseURL, d.Domain, d.Domain, d.Expiration.Format("01/02/2006 @ 03:04:05PM"), inDurStr)
+			domainList += fmt.Sprintf("<li><a href='%s/dash/?q=%s'>%s</a> is expiring on %s (in %s) <br />Client: %s, Registrar: %s</li>", getConfig().BaseURL, d.Domain, d.Domain, d.Expiration.Format("01/02/2006 @ 03:04:05PM"), inDurStr, client, d.Registrar)
 		}
 	}
 

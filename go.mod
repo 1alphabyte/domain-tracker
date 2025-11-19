@@ -9,7 +9,7 @@ require (
 	github.com/likexian/whois-parser v1.24.20
 	github.com/openrdap/rdap v0.9.1
 	github.com/wneessen/go-mail v0.7.2
-	golang.org/x/crypto v0.43.0
+	golang.org/x/crypto v0.44.0
 )
 
 require (
@@ -20,6 +20,6 @@ require (
 	github.com/likexian/gokit v0.25.15 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 )
