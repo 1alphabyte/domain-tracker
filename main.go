@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -56,7 +57,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// generate a new session token
 	token := generateSessionToken()
 	// store token in the database
-	_, err = db.Exec(context.TODO(), "INSERT INTO sessions (token, userId, expires) VALUES ($1, $2, $3)", token, user.ID, time.Now().Add(24*time.Hour))
+	_, err = db.Exec(context.TODO(), "INSERT INTO sessions (token, userId, expires) VALUES ($1, $2, $3)", token, user.ID, time.Now().Add(48*time.Hour))
 	if err != nil {
 		http.Error(w, "Failed to create session", http.StatusInternalServerError)
 		log.Print(err)
@@ -600,8 +601,13 @@ func main() {
 		} else if r.URL.Path == "/" {
 			http.Redirect(w, r, "/login/", http.StatusFound)
 		}
+		path := "./static" + r.URL.Path
+		if _, err := os.Stat(path); err == os.ErrNotExist {
+			http.NotFound(w, r)
+			return
+		}
 
-		http.ServeFile(w, r, "./static"+r.URL.Path)
+		http.ServeFile(w, r, path)
 	})
 
 	if err := http.ListenAndServe(getConfig().ListenAddr, mux); err != nil {
