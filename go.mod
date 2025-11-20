@@ -9,7 +9,7 @@ require (
 	github.com/likexian/whois-parser v1.24.20
 	github.com/openrdap/rdap v0.9.1
 	github.com/wneessen/go-mail v0.7.2
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.45.0
 )
 
 require (
