@@ -60,7 +60,7 @@ async function loadDomains() {
 		domain.appendChild(deleteBtn);
 		exp.textContent = new Date(d.expiration).toLocaleDateString();
 		auth.textContent = d.authority;
-		client.textContent = clients.filter((c) => c.id == d.clientId)[0].name;
+		client.textContent = clients.find((c) => c.ID == d.clientID).name;
 		raw.dataset.id = d.id;
 		raw.textContent = "View";
 		raw.className = "rawDataBtn";

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -600,14 +601,37 @@ func main() {
 			return
 		} else if r.URL.Path == "/" {
 			http.Redirect(w, r, "/login/", http.StatusFound)
+			return
 		}
-		path := "./static" + r.URL.Path
-		if _, err := os.Stat(path); err == os.ErrNotExist {
+
+		staticDir := "./static"
+		// Clean and join the path
+		joinedPath := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
+
+		absStaticDir, err := filepath.Abs(staticDir)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		absJoinedPath, err := filepath.Abs(joinedPath)
+		if err != nil {
 			http.NotFound(w, r)
 			return
 		}
 
-		http.ServeFile(w, r, path)
+		// Ensure the requested file is within the static directory
+		if !strings.HasPrefix(absJoinedPath, absStaticDir+string(os.PathSeparator)) && absJoinedPath != absStaticDir {
+			http.Error(w, "Permission denied", http.StatusForbidden)
+			return
+		}
+
+		if _, err := os.Stat(absJoinedPath); os.IsNotExist(err) {
+			http.NotFound(w, r)
+			return
+		}
+
+		http.ServeFile(w, r, absJoinedPath)
 	})
 
 	if err := http.ListenAndServe(getConfig().ListenAddr, mux); err != nil {
