@@ -4,7 +4,7 @@ COPY *.go go.* .
 RUN go mod download
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /out/domaintrk
 
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian13
 WORKDIR /app
 COPY --from=build /out/domaintrk .
 COPY ./static ./static
