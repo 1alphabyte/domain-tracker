@@ -32,6 +32,16 @@ func getConfig() Config {
 	return conf
 }
 
+func writeConfig(conf Config) {
+	jsonData, err := json.MarshalIndent(conf, "", "  	")
+	if err != nil {
+		log.Fatal("Failed to marshal config", err)
+	}
+	if err = os.WriteFile("./config.json", jsonData, 0644); err != nil {
+		log.Fatal("Failed to write config", err)
+	}
+}
+
 func generateSessionToken() string {
 	// A 32-byte token provides 256 bits of randomness, which is secure.
 	b := make([]byte, 32)

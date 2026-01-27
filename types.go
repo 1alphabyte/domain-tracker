@@ -3,20 +3,21 @@ package main
 import "time"
 
 type Config struct {
-	DatabaseURL   string `json:"databaseURL"`
-	InitPwd       string `json:"initPassword"`
-	InitUsr       string `json:"initUser"`
-	ListenAddr    string `json:"listenAddr"`
-	DaysDomainExp int    `json:"remindDomainExpDays"`
-	DaysCertExp   int    `json:"remindCertExpDays"`
-	EmailForExp   string `json:"to_email"`
-	FromEmail     string `json:"from_email"`
-	SMTPHost      string `json:"smtp_host"`
-	SMTP_USER     string `json:"SMTP_USER"`
-	SMTPPass      string `json:"SMTP_PASSWORD"`
-	SMTPPort      int    `json:"smtp_port"`
-	BaseURL       string `json:"baseURL"`
-	DBInitFile    string `json:"dbInitFile"`
+	DatabaseURL      string    `json:"databaseURL"`
+	InitPwd          string    `json:"initPassword"`
+	InitUsr          string    `json:"initUser"`
+	ListenAddr       string    `json:"listenAddr"`
+	DaysDomainExp    int       `json:"remindDomainExpDays"`
+	DaysCertExp      int       `json:"remindCertExpDays"`
+	EmailForExp      string    `json:"to_email"`
+	FromEmail        string    `json:"from_email"`
+	SMTPHost         string    `json:"smtp_host"`
+	SMTP_USER        string    `json:"SMTP_USER"`
+	SMTPPass         string    `json:"SMTP_PASSWORD"`
+	SMTPPort         int       `json:"smtp_port"`
+	BaseURL          string    `json:"baseURL"`
+	DBInitFile       string    `json:"dbInitFile"`
+	LastReminderSent time.Time `json:"lastReminderSent"`
 }
 
 type LoginRequest struct {

@@ -1,4 +1,4 @@
-FROM docker.io/golang:latest AS build
+FROM dhi.io/golang:1 AS build
 WORKDIR /build
 COPY *.go go.* .
 RUN go mod download

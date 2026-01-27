@@ -562,21 +562,23 @@ func main() {
 	// Send weekly expiration reminders and update domain info
 	// Runs every 7 days
 	go func() {
-		ticker := time.NewTicker(7 * 24 * time.Hour)
-		for range ticker.C {
-			dbCleanup()
-			updateDomains()
-			sendExpDomReminders()
-			updateTLSCerts()
-			sendTLSExpirationReminders()
-		}
-	}()
-
-	// Check nameservers every 24 hours
-	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		for range ticker.C {
+			// Check nameservers every 24 hours
 			detectNameserverChanges()
+
+			conf := getConfig()
+			// Check if a week has passed since last run
+			if time.Since(conf.LastReminderSent) >= 7*24*time.Hour {
+				dbCleanup()
+				updateDomains()
+				sendExpDomReminders()
+				updateTLSCerts()
+				sendTLSExpirationReminders()
+				// Write last run
+				conf.LastReminderSent = time.Now()
+				writeConfig(conf)
+			}
 		}
 	}()
 
