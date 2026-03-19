@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +19,54 @@ import (
 	"github.com/openrdap/rdap"
 	"github.com/wneessen/go-mail"
 )
+
+// emailHTML wraps email content in a consistent branded template
+func emailHTML(title, content string) string {
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f8;padding:32px 16px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%%;">
+  <tr>
+    <td style="background-color:#0d1117;padding:24px 32px;border-radius:12px 12px 0 0;">
+      <h1 style="margin:6px 0 0;font-size:20px;font-weight:700;color:#e6edf3;">%s</h1>
+    </td>
+  </tr>
+  <tr>
+    <td style="background-color:#ffffff;padding:28px 32px;">
+      %s
+    </td>
+  </tr>
+  <tr>
+    <td style="background-color:#f6f8fa;padding:14px 32px;border-radius:0 0 12px 12px;border-top:1px solid #e1e4e8;">
+      <p style="margin:0;font-size:12px;color:#6e7681;">Powered by Domain Tracker &middot; California Business Technology&reg; Inc.</p>
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`, title, content)
+}
+
+// domainCard returns an HTML card for a single domain/cert row in an email
+func domainCard(borderColor, linkURL, name, subtitle, badge string) string {
+	return fmt.Sprintf(`
+<table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border:1px solid #e1e4e8;border-radius:8px;overflow:hidden;">
+  <tr>
+    <td style="padding:14px 18px;border-left:4px solid %s;background-color:#ffffff;">
+      <p style="margin:0;font-size:16px;font-weight:600;"><a href="%s" style="color:#29a8e1;text-decoration:none;">%s</a></p>
+      <p style="margin:5px 0 0;font-size:13px;color:#57606a;">%s</p>
+      <p style="margin:5px 0 0;font-size:13px;font-weight:600;color:%s;">%s</p>
+    </td>
+  </tr>
+</table>`, borderColor, linkURL, name, subtitle, borderColor, badge)
+}
 
 func getConfig() Config {
 	file, err := os.ReadFile("./config.json")
@@ -33,7 +82,7 @@ func getConfig() Config {
 }
 
 func writeConfig(conf Config) {
-	jsonData, err := json.MarshalIndent(conf, "", "  	")
+	jsonData, err := json.MarshalIndent(conf, "", "		")
 	if err != nil {
 		log.Fatal("Failed to marshal config", err)
 	}
@@ -55,10 +104,6 @@ func checkSessionToken(r *http.Request) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-
-	// Get the database connection
-	db := setupDatabase()
-	defer db.Close(context.Background())
 
 	var session Session
 	err = db.QueryRow(context.TODO(), "SELECT userId, expires FROM sessions WHERE token = $1", cookie.Value).Scan(&session.UserID, &session.Expiry)

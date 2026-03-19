@@ -1,21 +1,285 @@
-form {
-	display: flex;
-	flex-direction: column;
+/* ── Design tokens ─────────────────────────────────────────────── */
+:root {
+	--bg:          #0d1117;
+	--surface-1:   #161b22;
+	--surface-2:   #1c2333;
+	--surface-3:   #21262d;
+	--border:      #30363d;
+	--text:        #e6edf3;
+	--text-muted:  #8b949e;
+	--blue:        #29a8e1;
+	--blue-dark:   #1a87ba;
+	--purple:      #7c6af7;
+	--purple-dark: #6355d4;
+	--red:         #f85149;
+	--red-dark:    #da3633;
+	--warning:     #e3b341;
+	--cyan:        #63cef9;
 }
+
+/* ── Base ──────────────────────────────────────────────────────── */
+body {
+	background-color: var(--bg);
+	color: var(--text);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+	font-size: 0.925rem;
+	margin: 0;
+	padding: 0 16px 24px;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+header {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 0 14px;
+	border-bottom: 1px solid var(--border);
+	margin-bottom: 14px;
+	position: relative;
+}
+
+header h1 {
+	font-size: 1.35rem;
+	font-weight: 700;
+	margin: 0;
+	color: var(--text);
+	letter-spacing: -0.01em;
+}
+
+#logo {
+	width: 46px;
+	height: 46px;
+	border-radius: 50%;
+	border: 2px solid var(--border);
+}
+
+#searchContainer {
+	position: absolute;
+	right: 160px;
+	width: 230px;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+
+#searchContainer label {
+	color: var(--text-muted);
+	font-size: 0.82rem;
+	white-space: nowrap;
+	font-weight: 500;
+}
+
+#searchInput {
+	flex: 1;
+	background-color: var(--surface-3);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	color: var(--text);
+	padding: 5px 9px;
+	font-size: 0.85rem;
+	transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#searchInput:focus {
+	outline: none;
+	border-color: var(--blue);
+	box-shadow: 0 0 0 3px rgba(41, 168, 225, 0.15);
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+button, input[type="submit"] {
+	border: none;
+	border-radius: 6px;
+	padding: 7px 15px;
+	margin: 3px;
+	background-color: var(--blue);
+	color: #fff;
+	font-weight: 600;
+	font-size: 0.86rem;
+	letter-spacing: 0.02em;
+	transition: background-color 0.18s, transform 0.1s;
+	cursor: pointer;
+}
+
+button:hover, input[type="submit"]:hover {
+	background-color: var(--blue-dark);
+}
+
+button:active, input[type="submit"]:active {
+	transform: scale(0.97);
+}
+
+/* ── Table ─────────────────────────────────────────────────────── */
 table {
 	width: 100%;
-	border-spacing: 5px;
+	border-spacing: 3px;
+}
+
+th {
+	color: var(--text-muted);
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	padding: 6px 10px;
+	text-align: left;
 }
 
 td {
-	border-radius: 7px;
-	padding: 3px;
-	background-color: #2e3337;
+	border-radius: 6px;
+	padding: 7px 10px;
+	background-color: var(--surface-3);
+	border: 1px solid var(--border);
 }
 
-#rawDataDiag {
-	max-width: 95%;
-	max-height: 85%;
+/* ── Sort arrows ───────────────────────────────────────────────── */
+.arrow {
+	border: solid var(--text-muted);
+	border-width: 0 2px 2px 0;
+	display: inline-block;
+	padding: 3px;
+	cursor: pointer;
+	transition: border-color 0.18s;
+}
+
+.arrow:hover {
+	border-color: var(--blue);
+}
+
+.left  { transform: rotate(135deg); }
+.up    { transform: rotate(-135deg); }
+.down  { transform: rotate(45deg); }
+
+/* ── DNS toggle icons ──────────────────────────────────────────── */
+.togg {
+	width: 1.1em;
+	transition: opacity 0.2s, transform 0.3s;
+	opacity: 0.65;
+	vertical-align: middle;
+}
+
+.togg:hover {
+	cursor: pointer;
+	transform: scale(1.5);
+	opacity: 1;
+}
+
+/* DNS columns hidden by default; shown when table has .dns-view */
+.dnsRecord, #aaaa, #mx, #a {
+	display: none;
+}
+
+table.dns-view .dnsRecord,
+table.dns-view #aaaa,
+table.dns-view #mx,
+table.dns-view #a {
+	display: table-cell;
+}
+
+table.dns-view .nameServer,
+table.dns-view #ns {
+	display: none;
+}
+
+/* DNS view column borders */
+#aaaa {
+	border: var(--cyan) solid 0.5px;
+	border-right: none;
+}
+#mx {
+	border-top: var(--cyan) solid 0.5px;
+	border-bottom: var(--cyan) solid 0.5px;
+}
+#a {
+	border: var(--cyan) solid 0.5px;
+	border-left: none;
+}
+
+/* ── Row icons ─────────────────────────────────────────────────── */
+.editIcon {
+	cursor: pointer;
+	width: 15px;
+	padding: 3px;
+	margin-left: 5px;
+	background-color: var(--purple);
+	content: url('/images/edit-icon.svg');
+	border-radius: 4px;
+	transition: background-color 0.18s;
+}
+
+.editIcon:hover {
+	background-color: var(--purple-dark);
+}
+
+.deleteIcon {
+	cursor: pointer;
+	width: 15px;
+	padding: 3px;
+	margin-left: 5px;
+	background-color: var(--red);
+	content: url('/images/delete-icon.webp');
+	border-radius: 4px;
+	transition: background-color 0.18s;
+}
+
+.deleteIcon:hover {
+	background-color: var(--red-dark);
+}
+
+/* ── Special buttons ───────────────────────────────────────────── */
+.rawDataBtn {
+	background-color: var(--purple);
+	user-select: none;
+	padding: 5px 11px;
+}
+
+.rawDataBtn:hover {
+	background-color: var(--purple-dark);
+}
+
+/* ── Inputs / Selects / Textarea ───────────────────────────────── */
+input, select, textarea {
+	border-radius: 6px;
+	padding: 6px 10px;
+	border: 1px solid var(--border);
+	background-color: var(--surface-3);
+	color: var(--text);
+	font-size: 0.875rem;
+	transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+	outline: none;
+	border-color: var(--blue);
+	box-shadow: 0 0 0 3px rgba(41, 168, 225, 0.15);
+}
+
+form {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+/* ── Dialogs ───────────────────────────────────────────────────── */
+dialog {
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background-color: var(--surface-1);
+	color: var(--text);
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
+	padding: 24px 28px;
+}
+
+dialog::backdrop {
+	background: rgba(0, 0, 0, 0.72);
+	backdrop-filter: blur(2px);
+}
+
+dialog h3 {
+	margin: 0 0 16px;
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--text);
 }
 
 .closeDiag {
@@ -28,138 +292,105 @@ td {
 	margin: 10px;
 	font-size: large;
 	outline: none;
-	color: #beffdb;
+	color: var(--text-muted);
+	transition: color 0.18s, background-color 0.18s;
+	padding: 4px 8px;
+	border-radius: 4px;
 }
 
-dialog {
-	border: none;
-	border-radius: 10px;
-	background-color: #0c0f12;
-	color: #beffdb;
+.closeDiag:hover {
+	color: var(--text);
+	background-color: var(--surface-3);
 }
 
-.rawDataBtn {
-	background-color: #5e43f3;
-	user-select: none;
+#rawDataDiag {
+	max-width: 95%;
+	max-height: 85%;
 }
 
-.rawDataBtn:hover {
-	background-color: #4c3af3;
-	cursor: pointer;
+/* ── Action area buttons ───────────────────────────────────────── */
+body > button {
+	margin-top: 10px;
+	margin-bottom: 4px;
 }
 
-body {
-	background-color: #181a1b;
-	color: #beffdb;
+/* Danger button for delete actions */
+#delC, #delCBtn {
+	background-color: var(--surface-3);
+	color: var(--red);
+	border: 1px solid var(--red);
 }
 
-button, input[type="submit"] {
-	border: none;
-	border-radius: 48px;
-	padding: 5px;
-	margin: 3px;
-	background-color: #29a8e1;
-	color: #beffdb;
-	font-weight: bold;
-}
-
-button:hover {
-	cursor: pointer;
-	background-color: #208ab8;
-}
-
-header {
-	display: flex;
-	align-items: center;
-}
-
-#logo {
-	width: 100px;
-	border-radius: 50%;
-}
-
-.editIcon {
-	cursor: pointer;
-	width: 15px;
-	padding: 3px;
-	margin-left: 5px;
-	background-color: #5e43f3;
-	content: url('/images/edit-icon.svg');
-	border-radius: 5px;
-}
-
-.deleteIcon {
-	cursor: pointer;
-	width: 15px;
-	padding: 3px;
-	margin-left: 5px;
-	background-color: #f34343;
-	content: url('/images/delete-icon.webp');
-	border-radius: 5px;
-}
-
-.editIcon:hover {
-	background-color: #4c3af3;
-}
-
-#warning {
-	color: #fbff00;
-}
-
-#searchContainer {
-	  position: absolute;
-	  right: 0px;
-	  width: 250px;
-}
-
-.arrow {
-	border: solid #fff;
-	border-width: 0 3px 3px 0;
-	display: inline-block;
-	padding: 3px;
-	cursor: pointer;
-}
-
-.left {
-	transform: rotate(135deg);
-}
-
-.up {
-	transform: rotate(-135deg);
-}
-
-.down {
-	transform: rotate(45deg);
-}
-
-input, select, textarea {
-	border-radius: 7px;
-	padding: 3px;
-	border: none;
-	background-color: #5d6e7c;
+#delC:hover, #delCBtn:hover {
+	background-color: var(--red);
 	color: #fff;
 }
 
-.togg {
-	width: 1.1em;
-	transition: .3s;
+/* ── Table row hover ───────────────────────────────────────────── */
+tr:not(:first-child):not(:has(.rawDataBtn:hover)):hover td:not(.rawDataBtn) {
+	background-color: var(--surface-2);
 }
 
-.togg:hover {
-	cursor: pointer;
-	transform: scale(1.5);
-	transition: .5s;
+tr:not(:first-child):hover td.rawDataBtn {
+	background-color: var(--purple-dark);
 }
 
-#aaaa {
-	border: #63cef9 solid .5px;
-	border-right: none;
+/* ── Raw data pre block ────────────────────────────────────────── */
+#rawData {
+	background-color: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 14px 16px;
+	font-size: 0.82rem;
+	line-height: 1.55;
+	color: var(--text-muted);
+	overflow: auto;
+	max-height: 60vh;
+	white-space: pre-wrap;
+	word-break: break-all;
 }
-#mx {
-	border-top: #63cef9 solid .5px;
-	border-bottom: #63cef9 solid .5px;
+
+/* ── Links ─────────────────────────────────────────────────────── */
+a {
+	color: var(--blue);
+	text-decoration: none;
 }
-#a {
-	border: #63cef9 solid .5px;
-	border-left: none;
+
+a:hover {
+	text-decoration: underline;
+}
+
+/* ── Refresh log dialog ────────────────────────────────────────── */
+#refreshLog {
+	background-color: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 12px 16px;
+	height: 300px;
+	width: 480px;
+	overflow-y: auto;
+	font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+	font-size: 0.82rem;
+	line-height: 1.6;
+}
+
+#refreshLog p {
+	margin: 0;
+	color: var(--text-muted);
+	padding: 1px 0;
+}
+
+#refreshLog p:last-child {
+	color: var(--text);
+}
+
+#refreshStatus {
+	margin: 10px 0 0;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+/* ── Misc ──────────────────────────────────────────────────────── */
+#warning {
+	color: var(--warning);
 }

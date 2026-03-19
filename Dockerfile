@@ -1,4 +1,4 @@
-FROM dhi.io/golang:1-dev AS build
+FROM dhi.io/golang:1.26-dev AS build
 WORKDIR /build
 COPY *.go go.* .
 RUN go mod download
@@ -9,6 +9,6 @@ WORKDIR /app
 COPY --from=build /out/domaintrk .
 COPY ./static ./static
 LABEL org.opencontainers.image.source="https://github.com/1alphabyte/domain-tracker"
-LABEL org.opencontainers.image.licenses="GPL-3.0"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"
 LABEL org.opencontainers.image.authors="Utsav <e@utsav2.dev>"
 ENTRYPOINT ["/app/domaintrk"]

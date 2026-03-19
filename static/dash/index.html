@@ -19,16 +19,17 @@
 	<button id="addD">Add Domain</button>
 	<button id="AddC">Add Client</button>
 	<button id="delC">Delete Client</button>
+	<button id="manRef">Refresh All</button>
 	<table>
 		<tr>
 			<th>Domain <i id="tableHeader0" onclick="sortTable(0)" class="arrow left"></i></th>
 			<th>Expires <i id="tableHeader1" onclick="sortTableDate(1)" class="arrow left"></i></th>
 			<th id="ns">Nameservers <img class="togg" id="tableHeader2" title="Switch to DNS view" src="../images/swap.svg" /></th>
-			<th hidden id="aaaa">AAAA Record</th>
-			<th hidden id="mx">MX Record</th>
-			<th hidden id="a">A Record <img class="togg" id="tableHeader22" title="Switch to Nameserver view" src="../images/swap.svg" /></th>
-			<th>Registrar <i id="tableHeader3" onclick="sortTable(3)" class="arrow left"></i></th>
-			<th>Client <i id="tableHeader4" onclick="sortTable(4)" class="arrow left"></i></th>
+			<th id="aaaa">AAAA Record</th>
+			<th id="mx">MX Record</th>
+			<th id="a">A Record <img class="togg" id="tableHeader22" title="Switch to Nameserver view" src="../images/swap.svg" /></th>
+			<th>Registrar <i id="tableHeader6" onclick="sortTable(6)" class="arrow left"></i></th>
+			<th>Client <i id="tableHeader7" onclick="sortTable(7)" class="arrow left"></i></th>
 			<th>Notes</th>
 			<th>Raw Data</th>
 		</tr>
@@ -82,6 +83,12 @@
 		<h3>Delete client</h3>
 		<span id="delCName"></span>
 		<button id="delCBtn">Delete</button>
+	</dialog>
+	<dialog id="manRefDiag">
+		<button class="closeDiag">&#10006;</button>
+		<h3>Refresh All Domains</h3>
+		<div id="refreshLog"></div>
+		<p id="refreshStatus"></p>
 	</dialog>
 	<script src="dash.js"></script>
 </body>

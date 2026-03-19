@@ -5,9 +5,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var db *pgxpool.Pool
 
 func InitDBSetup() {
 	// check if the database has already been initialized
@@ -15,10 +17,6 @@ func InitDBSetup() {
 		// Database has already been initialized
 		return
 	}
-
-	db := setupDatabase()
-
-	defer db.Close(context.Background())
 
 	_, err := db.Exec(context.TODO(), `
 		CREATE TABLE IF NOT EXISTS users (
@@ -105,11 +103,11 @@ func InitDBSetup() {
 	}
 }
 
-func setupDatabase() *pgx.Conn {
-	conn, err := pgx.Connect(context.Background(), getConfig().DatabaseURL)
+func setupDatabase() *pgxpool.Pool {
+	pool, err := pgxpool.New(context.Background(), getConfig().DatabaseURL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	return conn
+	return pool
 }

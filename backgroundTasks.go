@@ -13,9 +13,6 @@ import (
 )
 
 func dbCleanup() {
-	db := setupDatabase()
-	defer db.Close(context.Background())
-
 	// Delete expired sessions
 	delSess, err := db.Exec(context.TODO(), "DELETE FROM sessions WHERE expires < $1", time.Now())
 	if err != nil {
@@ -24,9 +21,17 @@ func dbCleanup() {
 	log.Printf("Deleted %d expired session(s)\n", delSess.RowsAffected())
 }
 
-func updateDomains() {
-	db := setupDatabase()
-	defer db.Close(context.Background())
+func updateDomains(progress chan<- string) {
+	send := func(msg string) {
+		log.Println(msg)
+		if progress != nil {
+			select {
+			case progress <- msg:
+			default:
+			}
+		}
+	}
+
 	// Get all domains
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -42,38 +47,54 @@ func updateDomains() {
 		return
 	}
 
+	send(fmt.Sprintf("Checking %d domain(s) for updates...", len(domains)))
+	refreshed := 0
+
 	// Iterate over each domain and check expiration
 	for _, d := range domains {
-		// get stored expiration date
 		currTime := time.Now().AddDate(0, 0, getConfig().DaysDomainExp)
 
 		// Check if the domain expires within the configured reminder period
 		// If it does, refresh its data
 		if currTime.After(d.Expiration) {
-			log.Printf("Refreshing domain: %s\n", d.Domain)
+			send(fmt.Sprintf("Updating %s...", d.Domain))
 			exp, ns, reg, rawData, dns, err := fetchDomainData(d.Domain)
 			if err != nil {
-				log.Println(err)
+				send(fmt.Sprintf("Failed to fetch data for %s: %v", d.Domain, err))
 				continue
 			}
 
 			_, err = db.Exec(context.TODO(), "UPDATE domains SET expiration = $1, nameservers = $2, registrar = $3, rawWhoisData = $4, dns = $5 WHERE id = $6",
 				exp, ns, reg, rawData, dns, d.ID)
 			if err != nil {
-				log.Printf("Failed to update domain %s: %v\n", d.Domain, err)
+				send(fmt.Sprintf("Failed to save %s: %v", d.Domain, err))
 				continue
 			}
 
-			// TSK: consider for removal
-			log.Printf("Updated domain: %s\n", d.Domain)
+			send(fmt.Sprintf("Updated %s (expires %s)", d.Domain, exp.Format("01/02/2006")))
+			refreshed++
 			time.Sleep(15 * time.Second) // to avoid rate limiting
 		}
 	}
+
+	if refreshed == 0 {
+		send("No domains needed updating")
+	} else {
+		send(fmt.Sprintf("Finished updating %d domain(s)", refreshed))
+	}
 }
 
-func sendExpDomReminders() {
-	db := setupDatabase()
-	defer db.Close(context.Background())
+func sendExpDomReminders(progress chan<- string) {
+	send := func(msg string) {
+		log.Println(msg)
+		if progress != nil {
+			select {
+			case progress <- msg:
+			default:
+			}
+		}
+	}
+
 	// Get all domains
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -100,66 +121,58 @@ func sendExpDomReminders() {
 		}
 	}
 
-	log.Printf("Sending expiration reminder for %d domains", len(needReminder))
+	send("Checking for expiring domains...")
 
 	var domainList string
 
 	if len(needReminder) == 0 {
-		log.Println("No domains need reminders, skipping email.")
+		send("No domains expiring soon, skipping email")
 		return
 	} else {
+		send(fmt.Sprintf("%d domain(s) expiring soon:", len(needReminder)))
+		warningThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 2
+		critThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 3
+
 		for _, d := range needReminder {
-			// check if less than half the reminder period is remaining
-			var inDurStr string
-			warningThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 2
-			critThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 3
+			send(fmt.Sprintf("  • %s (expires %s)", d.Domain, d.Expiration.Format("01/02/2006")))
+
+			var borderColor, badge string
 			if time.Until(d.Expiration) < critThreshold {
-				inDurStr = fmt.Sprintf("<b style='color: red;'>%s</b>⚠️", humanize.Time(d.Expiration))
+				borderColor = "#f85149"
+				badge = "⚠ Critical — " + humanize.Time(d.Expiration)
 			} else if time.Until(d.Expiration) < warningThreshold {
-				inDurStr = fmt.Sprintf("<span style='color: orange;'>%s</span>", humanize.Time(d.Expiration))
+				borderColor = "#e3b341"
+				badge = "Warning — " + humanize.Time(d.Expiration)
 			} else {
-				inDurStr = humanize.Time(d.Expiration)
+				borderColor = "#29a8e1"
+				badge = humanize.Time(d.Expiration)
 			}
+
 			// Get client name
 			var client string
 			err = db.QueryRow(context.TODO(), "SELECT name FROM clients WHERE id = $1", d.ClientID).Scan(&client)
 			if err != nil {
 				log.Println("failed to get client", err)
-				client = ""
+				client = "Unknown"
 			}
 
-			// add to the list
-			domainList += fmt.Sprintf("<li><a href='%s/dash/?q=%s'>%s</a> is expiring on %s (in %s) <br />Client: %s, Registrar: %s</li>", getConfig().BaseURL, d.Domain, d.Domain, d.Expiration.Format("01/02/2006 @ 03:04:05PM"), inDurStr, client, d.Registrar)
+			subtitle := fmt.Sprintf("Expires %s &middot; Client: %s &middot; Registrar: %s",
+				d.Expiration.Format("01/02/2006"), client, d.Registrar)
+			domainList += domainCard(borderColor, getConfig().BaseURL+"/dash/?q="+d.Domain, d.Domain, subtitle, badge)
 		}
 	}
 
-	err = sendEmail("Domains expiring soon", fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-			<head>
-  				<meta charset="UTF-8">
-  				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  			</head>
-			<body>
-				<h3>The following domain(s) are expiring within the next %d days:</h3>
-				<p>Click a domain to view it in Domain Tracker</p>
-				<ul>
-					%s
-				</ul>
-				<br />
-				<footer style='font-size: smaller;'>
-					Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.
-				</footer>
-			</body>
-		</html>`, getConfig().DaysDomainExp, domainList))
+	send("Sending expiration reminder email...")
+	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">The following %d domain(s) are expiring within the next <strong>%d days</strong>. Click a domain to view it in Domain Tracker.</p>`, len(needReminder), getConfig().DaysDomainExp)
+	err = sendEmail("Domains expiring soon", emailHTML("Domains expiring soon", intro+domainList))
 	if err != nil {
-		log.Printf("Failed to send expiration reminder email: %v\n", err)
+		send(fmt.Sprintf("Failed to send email: %v", err))
+	} else {
+		send("Expiration reminder email sent")
 	}
 }
 
 func detectNameserverChanges() {
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Get all domains
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -197,9 +210,7 @@ func detectNameserverChanges() {
 		ns = TrimDot(ns)
 
 		// Check if there is a change
-		googChange := !slices.Equal(ns, newNs)
-
-		if googChange {
+		if !slices.Equal(ns, newNs) {
 			// Store the change
 			NSChanges = append(NSChanges, NSChange{
 				Domain:    d.Domain,
@@ -215,6 +226,8 @@ func detectNameserverChanges() {
 				continue
 			}
 		}
+
+		time.Sleep(1 * time.Second) // avoid rate limiting Google DNS
 	}
 
 	if len(NSChanges) == 0 {
@@ -222,43 +235,29 @@ func detectNameserverChanges() {
 		return
 	}
 
-	// Send a alert of the change
+	// Send an alert of the changes
 	var listChanges string
 	for _, change := range NSChanges {
-		listChanges += fmt.Sprintf("<li><b>%s</b><br />Old NS: %s<br />New NS: %s<br />Checked At: %s</li><br />",
-			change.Domain,
+		subtitle := fmt.Sprintf("Detected %s", change.CheckedAt.Format("01/02/2006 @ 03:04:05PM"))
+		nsDetails := fmt.Sprintf(
+			`<table cellpadding="0" cellspacing="0" style="margin-top:8px;font-size:13px;color:#57606a;">
+			<tr><td style="padding-right:12px;white-space:nowrap;color:#6e7681;">Old NS</td><td>%s</td></tr>
+			<tr><td style="padding-right:12px;white-space:nowrap;color:#6e7681;">New NS</td><td style="color:#29a8e1;">%s</td></tr>
+			</table>`,
 			strings.Join(change.OldNS, ", "),
 			strings.Join(change.NewNS, ", "),
-			change.CheckedAt.Format("01/02/2006 @ 03:04:05PM"),
 		)
+		listChanges += domainCard("#e3b341", getConfig().BaseURL+"/dash/?q="+change.Domain, change.Domain, subtitle, "") + nsDetails
 	}
 
-	err = sendEmail("Domain nameserver changes detected", fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-			<head>
-  				<meta charset="UTF-8">
-  				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  			</head>
-			<body>
-				<h3>The following domains' nameserver have changed:</h3>
-				<ul>
-					%s
-				</ul>
-				<br />
-				<footer style='font-size: smaller;'>
-					Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.
-				</footer>
-			</body>
-		</html>`, listChanges))
+	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">Nameserver changes were detected for <strong>%d domain(s)</strong>. The database has been updated automatically.</p>`, len(NSChanges))
+	err = sendEmail("Nameserver changes detected", emailHTML("Nameserver changes detected", intro+listChanges))
 	if err != nil {
 		log.Printf("Failed to send nameserver change alert email: %v\n", err)
 	}
 }
 
 func updateTLSCerts() {
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Get all certificates
 	rows, err := db.Query(context.TODO(), "SELECT * FROM crts")
 	if err != nil {
@@ -297,8 +296,6 @@ func updateTLSCerts() {
 }
 
 func sendTLSExpirationReminders() {
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Get all certificates
 	rows, err := db.Query(context.TODO(), "SELECT * FROM crts")
 	if err != nil {
@@ -327,37 +324,21 @@ func sendTLSExpirationReminders() {
 
 	log.Printf("Sending expiration reminder for %d certificates", len(needReminder))
 
-	var domainList string
+	var certList string
 
 	if len(needReminder) == 0 {
-		log.Println("No domains need reminders, skipping email.")
+		log.Println("No certificates need reminders, skipping email.")
 		return
 	} else {
 		for _, d := range needReminder {
-			// add to the list
-			domainList += fmt.Sprintf("<li><a href='%s/dash/tls/?q=%s'>%s</a> is expiring on %s UTC (in %s)</li>", getConfig().BaseURL, d.CommonName, d.CommonName, d.Expiration.Format("01/02/2006 @ 03:04:05PM"), humanize.Time(d.Expiration))
+			subtitle := fmt.Sprintf("Expires %s &middot; Authority: %s",
+				d.Expiration.Format("01/02/2006"), d.Authority)
+			certList += domainCard("#29a8e1", getConfig().BaseURL+"/dash/tls/?q="+d.CommonName, d.CommonName, subtitle, humanize.Time(d.Expiration))
 		}
 	}
 
-	err = sendEmail("TLS certificates soon", fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-			<head>
-  				<meta charset="UTF-8">
-  				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  			</head>
-			<body>
-				<h3>The following TLS certificate(s) are expiring within the next %d days:</h3>
-				<p>Click a domain to view it in TLS certificate Tracker</p>
-				<ul>
-					%s
-				</ul>
-				<br />
-				<footer style='font-size: smaller;'>
-					Powered by <img src='https://assets.cdn.utsav2.dev:453/bucket/domaintrk/favicon.webp' style='width: 20px; border-radius: 50%%;' />Domain Tracker for <img src='https://cbt.io/wp-content/uploads/2023/07/favicon.png' style='width: 20px;' />California Business Technology<sup>®</sup> Inc.
-				</footer>
-			</body>
-		</html>`, getConfig().DaysCertExp, domainList))
+	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">The following %d TLS certificate(s) are expiring within the next <strong>%d days</strong>. Click a certificate to view it in the TLS tracker.</p>`, len(needReminder), getConfig().DaysCertExp)
+	err = sendEmail("TLS certificates expiring soon", emailHTML("TLS certificates expiring soon", intro+certList))
 	if err != nil {
 		log.Printf("TLS: Failed to send expiration reminder email: %v\n", err)
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -34,8 +35,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Find the user with the username in the DB
 	var user DbUser
 	err := db.QueryRow(context.TODO(), "SELECT id, password FROM users WHERE username = $1", loginReq.Username).Scan(&user.ID, &user.Password)
@@ -86,8 +85,6 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Get all rows from the domains SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
 	if err != nil {
@@ -147,8 +144,6 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	c, err := db.Exec(context.TODO(), "UPDATE domains SET clientid = $1, notes = $2 WHERE id = $3", req.ClientID, req.Notes, req.ID)
 	if err != nil {
 		http.Error(w, "Failed to update domain", http.StatusInternalServerError)
@@ -200,8 +195,6 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Insert the new domain into the DB
 	_, err = db.Exec(context.TODO(), "INSERT INTO domains (domain, expiration, nameservers, registrar, dns, clientid, rawwhoisdata, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		domain.Domain,
@@ -236,8 +229,6 @@ func clientListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Get all rows from the clients SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM clients")
 	if err != nil {
@@ -295,8 +286,6 @@ func clientAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	_, err = db.Exec(context.TODO(), "INSERT INTO clients (name) VALUES ($1)", client.Name)
 	if err != nil {
 		http.Error(w, "Failed to add client", http.StatusInternalServerError)
@@ -332,8 +321,6 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	c, err := db.Exec(context.TODO(), "DELETE FROM domains WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete domain", http.StatusInternalServerError)
@@ -371,8 +358,6 @@ func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	c, err := db.Exec(context.TODO(), "DELETE FROM clients WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete client", http.StatusInternalServerError)
@@ -386,9 +371,9 @@ func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Allow all domains to be refreshed manually (no frontend for now must call the endpoint directly)
+// Allow all domains to be refreshed manually via SSE — streams live progress to the client
 func manRefHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -403,13 +388,42 @@ func manRefHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Refresh all domains
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	progress := make(chan string, 100)
+
 	go func() {
-		updateDomains()
-		sendExpDomReminders()
+		updateDomains(progress)
+		sendExpDomReminders(progress)
+		conf := getConfig()
+		conf.LastReminderSent = time.Now()
+		writeConfig(conf)
+		close(progress)
 	}()
 
-	w.WriteHeader(http.StatusAccepted)
+	ctx := r.Context()
+	for {
+		select {
+		case msg, ok := <-progress:
+			if !ok {
+				fmt.Fprintf(w, "event: done\ndata: \n\n")
+				flusher.Flush()
+				return
+			}
+			fmt.Fprintf(w, "data: %s\n\n", msg)
+			flusher.Flush()
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 // Allow adding domain to track TLS certs
@@ -449,8 +463,6 @@ func tlsAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Insert the new domain into the DB
 	_, err = db.Exec(context.TODO(), "INSERT INTO crts (domain, commonName, expiration, authority, clientId, rawData, notes) VALUES ($1, $2, $3, $4, $5, $6, $7);",
 		domain.Domain,
@@ -485,8 +497,6 @@ func tlsListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	// Get all rows from the crts SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM crts")
 	if err != nil {
@@ -539,8 +549,6 @@ func deleteTLSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := setupDatabase()
-	defer db.Close(context.Background())
 	c, err := db.Exec(context.TODO(), "DELETE FROM crts WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete domain", http.StatusInternalServerError)
@@ -555,6 +563,10 @@ func deleteTLSHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Initialize the database connection pool
+	db = setupDatabase()
+	defer db.Close()
+
 	// Initialize the database (create tables if they don't exist)
 	InitDBSetup()
 
@@ -570,9 +582,10 @@ func main() {
 			conf := getConfig()
 			// Check if a week has passed since last run
 			if time.Since(conf.LastReminderSent) >= 7*24*time.Hour {
+				log.Println("Running weekly background tasks...")
 				dbCleanup()
-				updateDomains()
-				sendExpDomReminders()
+				updateDomains(nil)
+				sendExpDomReminders(nil)
 				updateTLSCerts()
 				sendTLSExpirationReminders()
 				// Write last run

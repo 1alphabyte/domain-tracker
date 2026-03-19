@@ -71,9 +71,6 @@ async function loadDomains() {
 		aDNS.className = "dnsRecord";
 		aaaaDNS.className = "dnsRecord";
 		mxDNS.className = "dnsRecord";
-		aDNS.hidden = true;
-		aaaaDNS.hidden = true;
-		mxDNS.hidden = true;
 		ns.className = "nameServer";
 
 		domain.textContent = d.domain;
@@ -288,6 +285,50 @@ function main() {
 	document.getElementById("delC").addEventListener("click", () => {
 		document.getElementById("delCDiag").showModal();
 	});
+
+	let activeRefreshStream = null;
+
+	document.getElementById("manRef").addEventListener("click", () => {
+		const diag = document.getElementById("manRefDiag");
+		const log = document.getElementById("refreshLog");
+		const status = document.getElementById("refreshStatus");
+
+		log.innerHTML = "";
+		status.textContent = "Running...";
+		document.getElementById("manRef").disabled = true;
+		diag.showModal();
+
+		activeRefreshStream = new EventSource("/api/refreshAll");
+
+		activeRefreshStream.onmessage = (e) => {
+			const line = document.createElement("p");
+			line.textContent = e.data;
+			log.appendChild(line);
+			log.scrollTop = log.scrollHeight;
+		};
+
+		activeRefreshStream.addEventListener("done", () => {
+			activeRefreshStream.close();
+			activeRefreshStream = null;
+			status.textContent = "Complete ✓";
+			document.getElementById("manRef").disabled = false;
+		});
+
+		activeRefreshStream.onerror = () => {
+			activeRefreshStream.close();
+			activeRefreshStream = null;
+			status.textContent = "Connection error";
+			document.getElementById("manRef").disabled = false;
+		};
+	});
+
+	document.getElementById("manRefDiag").addEventListener("close", () => {
+		if (activeRefreshStream) {
+			activeRefreshStream.close();
+			activeRefreshStream = null;
+		}
+		document.getElementById("manRef").disabled = false;
+	});
 	search.addEventListener("input", (e) => {
 		const rows = Array.from(table.rows).slice(1); // Exclude header row
 		const searchTerm = e.target.value.toLowerCase();
@@ -323,80 +364,42 @@ function main() {
 main();
 
 
-function sortTable(columnIndex) {
-	const rows = Array.from(table.rows).slice(1); // Exclude header row
-	let direction = table.getAttribute('data-sort-direction') === 'asc' ? 'desc' : 'asc';
-	table.setAttribute('data-sort-direction', direction);
-	let tableHeader = document.getElementById(`tableHeader${columnIndex}`);
-	if (direction === 'asc') {
-		tableHeader.classList = "arrow up";
-	} else {
-		tableHeader.classList = "arrow down";
-	}
-	// Reset other headers
-	document.querySelectorAll(".arrow").forEach((e) => {
-		if (e !== tableHeader) {
-			e.classList = "arrow left";
-		}
-	});
+// Per-column sort direction state
+const colSortDir = {};
+
+function sortTable(colIdx) {
+	const rows = Array.from(table.rows).slice(1);
+	const dir = colSortDir[colIdx] === 'asc' ? 'desc' : 'asc';
+	colSortDir[colIdx] = dir;
+
+	document.querySelectorAll("th .arrow").forEach((e) => e.className = "arrow left");
+	document.getElementById(`tableHeader${colIdx}`).className = dir === 'asc' ? "arrow up" : "arrow down";
 
 	rows.sort((a, b) => {
-		const x = a.cells[columnIndex].innerText.toLowerCase();
-		const y = b.cells[columnIndex].innerText.toLowerCase();
-		if (direction === 'asc') {
-			return x > y ? 1 : x < y ? -1 : 0;
-		} else {
-			return x < y ? 1 : x > y ? -1 : 0;
-		}
+		const x = a.cells[colIdx].innerText.trim().toLowerCase();
+		const y = b.cells[colIdx].innerText.trim().toLowerCase();
+		return dir === 'asc' ? (x > y ? 1 : x < y ? -1 : 0) : (x < y ? 1 : x > y ? -1 : 0);
 	});
 
 	rows.forEach(row => table.appendChild(row));
 }
 
-function sortTableDate(columnIndex) {
-	const rows = Array.from(table.rows).slice(1); // Exclude header row
-	let direction = table.getAttribute('data-sort-direction') === 'asc' ? 'desc' : 'asc';
-	table.setAttribute('data-sort-direction', direction);
-	let tableHeader = document.getElementById(`tableHeader${columnIndex}`);
-	if (direction === 'asc') {
-		tableHeader.classList = "arrow up";
-	} else {
-		tableHeader.classList = "arrow down";
-	}
-	// Reset other headers
-	document.querySelectorAll(".arrow").forEach((e) => {
-		if (e !== tableHeader) {
-			e.classList = "arrow left";
-		}
-	});
+function sortTableDate(colIdx) {
+	const rows = Array.from(table.rows).slice(1);
+	const dir = colSortDir[colIdx] === 'asc' ? 'desc' : 'asc';
+	colSortDir[colIdx] = dir;
+
+	document.querySelectorAll("th .arrow").forEach((e) => e.className = "arrow left");
+	document.getElementById(`tableHeader${colIdx}`).className = dir === 'asc' ? "arrow up" : "arrow down";
 
 	rows.sort((a, b) => {
-		const x = new Date(a.cells[columnIndex].innerText);
-		const y = new Date(b.cells[columnIndex].innerText);
-		if (direction === 'asc') {
-			return x - y;
-		} else {
-			return y - x;
-		}
+		const x = new Date(a.cells[colIdx].innerText.trim());
+		const y = new Date(b.cells[colIdx].innerText.trim());
+		return dir === 'asc' ? x - y : y - x;
 	});
 
 	rows.forEach(row => table.appendChild(row));
 }
 
-document.getElementById("tableHeader2").addEventListener("click", () => {
-	document.getElementById("ns").hidden = true;
-	document.getElementById("a").hidden = false;
-	document.getElementById("aaaa").hidden = false;
-	document.getElementById("mx").hidden = false;
-	Array.from(document.getElementsByClassName("nameServer")).forEach((e) => e.hidden = true);
-	Array.from(document.getElementsByClassName("dnsRecord")).forEach((e) => e.hidden = false);
-});
-
-document.getElementById("tableHeader22").addEventListener("click", () => {
-	document.getElementById("ns").hidden = false;
-	document.getElementById("a").hidden = true;
-	document.getElementById("aaaa").hidden = true;
-	document.getElementById("mx").hidden = true;
-	Array.from(document.getElementsByClassName("nameServer")).forEach((e) => e.hidden = false);
-	Array.from(document.getElementsByClassName("dnsRecord")).forEach((e) => e.hidden = true);
-});
+document.getElementById("tableHeader2").addEventListener("click", () => table.classList.add("dns-view"));
+document.getElementById("tableHeader22").addEventListener("click", () => table.classList.remove("dns-view"));
