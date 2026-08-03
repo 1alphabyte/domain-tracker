@@ -111,9 +111,11 @@ func sendExpDomReminders(progress chan<- string) {
 	// Array to hold domains needing reminders
 	var needReminder []Domain
 
+	// Read the config
+	config := getConfig()
 	// Populate the array
 	for _, d := range domains {
-		currTime := time.Now().AddDate(0, 0, getConfig().DaysDomainExp)
+		currTime := time.Now().AddDate(0, 0, config.DaysDomainExp)
 
 		// Check if the domain expires within the configured reminder period
 		if currTime.After(d.Expiration) {
@@ -123,15 +125,15 @@ func sendExpDomReminders(progress chan<- string) {
 
 	send("Checking for expiring domains...")
 
-	var domainList string
+	var domainList strings.Builder
 
 	if len(needReminder) == 0 {
 		send("No domains expiring soon, skipping email")
 		return
 	} else {
 		send(fmt.Sprintf("%d domain(s) expiring soon:", len(needReminder)))
-		warningThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 2
-		critThreshold := (time.Duration(getConfig().DaysDomainExp) * 24 * time.Hour) / 3
+		warningThreshold := (time.Duration(config.DaysDomainExp) * 24 * time.Hour) / 2
+		critThreshold := (time.Duration(config.DaysDomainExp) * 24 * time.Hour) / 3
 
 		for _, d := range needReminder {
 			send(fmt.Sprintf("  • %s (expires %s)", d.Domain, d.Expiration.Format("01/02/2006")))
@@ -158,13 +160,13 @@ func sendExpDomReminders(progress chan<- string) {
 
 			subtitle := fmt.Sprintf("Expires %s &middot; Client: %s &middot; Registrar: %s",
 				d.Expiration.Format("01/02/2006"), client, d.Registrar)
-			domainList += domainCard(borderColor, getConfig().BaseURL+"/dash/?q="+d.Domain, d.Domain, subtitle, badge)
+			domainList.WriteString(domainCard(borderColor, config.BaseURL+"/dash/?q="+d.Domain, d.Domain, subtitle, badge))
 		}
 	}
 
 	send("Sending expiration reminder email...")
-	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">The following %d domain(s) are expiring within the next <strong>%d days</strong>. Click a domain to view it in Domain Tracker.</p>`, len(needReminder), getConfig().DaysDomainExp)
-	err = sendEmail("Domains expiring soon", emailHTML("Domains expiring soon", intro+domainList))
+	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">The following %d domain(s) are expiring within the next <strong>%d days</strong>. Click a domain to view it in Domain Tracker.</p>`, len(needReminder), config.DaysDomainExp)
+	err = sendEmail("Domains expiring soon", emailHTML("Domains expiring soon", intro+domainList.String()))
 	if err != nil {
 		send(fmt.Sprintf("Failed to send email: %v", err))
 	} else {
@@ -236,9 +238,9 @@ func detectNameserverChanges() {
 	}
 
 	// Send an alert of the changes
-	var listChanges string
+	var listChanges strings.Builder
 	for _, change := range NSChanges {
-		subtitle := fmt.Sprintf("Detected %s", change.CheckedAt.Format("01/02/2006 @ 03:04:05PM"))
+		subtitle := fmt.Sprintf("Detected %s", change.CheckedAt.Format("01/02/2006 @ 03:04PM"))
 		nsDetails := fmt.Sprintf(
 			`<table cellpadding="0" cellspacing="0" style="margin-top:8px;font-size:13px;color:#57606a;">
 			<tr><td style="padding-right:12px;white-space:nowrap;color:#6e7681;">Old NS</td><td>%s</td></tr>
@@ -247,11 +249,11 @@ func detectNameserverChanges() {
 			strings.Join(change.OldNS, ", "),
 			strings.Join(change.NewNS, ", "),
 		)
-		listChanges += domainCard("#e3b341", getConfig().BaseURL+"/dash/?q="+change.Domain, change.Domain, subtitle, "") + nsDetails
+		listChanges.WriteString(domainCard("#e3b341", getConfig().BaseURL+"/dash/?q="+change.Domain, change.Domain, subtitle, "") + nsDetails)
 	}
 
 	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">Nameserver changes were detected for <strong>%d domain(s)</strong>. The database has been updated automatically.</p>`, len(NSChanges))
-	err = sendEmail("Nameserver changes detected", emailHTML("Nameserver changes detected", intro+listChanges))
+	err = sendEmail("Nameserver changes detected", emailHTML("Nameserver changes detected", intro+listChanges.String()))
 	if err != nil {
 		log.Printf("Failed to send nameserver change alert email: %v\n", err)
 	}
@@ -324,7 +326,7 @@ func sendTLSExpirationReminders() {
 
 	log.Printf("Sending expiration reminder for %d certificates", len(needReminder))
 
-	var certList string
+	var certList strings.Builder
 
 	if len(needReminder) == 0 {
 		log.Println("No certificates need reminders, skipping email.")
@@ -333,12 +335,12 @@ func sendTLSExpirationReminders() {
 		for _, d := range needReminder {
 			subtitle := fmt.Sprintf("Expires %s &middot; Authority: %s",
 				d.Expiration.Format("01/02/2006"), d.Authority)
-			certList += domainCard("#29a8e1", getConfig().BaseURL+"/dash/tls/?q="+d.CommonName, d.CommonName, subtitle, humanize.Time(d.Expiration))
+			certList.WriteString(domainCard("#29a8e1", getConfig().BaseURL+"/dash/tls/?q="+d.CommonName, d.CommonName, subtitle, humanize.Time(d.Expiration)))
 		}
 	}
 
 	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">The following %d TLS certificate(s) are expiring within the next <strong>%d days</strong>. Click a certificate to view it in the TLS tracker.</p>`, len(needReminder), getConfig().DaysCertExp)
-	err = sendEmail("TLS certificates expiring soon", emailHTML("TLS certificates expiring soon", intro+certList))
+	err = sendEmail("TLS certificates expiring soon", emailHTML("TLS certificates expiring soon", intro+certList.String()))
 	if err != nil {
 		log.Printf("TLS: Failed to send expiration reminder email: %v\n", err)
 	}
