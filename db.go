@@ -44,7 +44,9 @@ func InitDBSetup() {
 	_, err = db.Exec(context.TODO(), `
 		CREATE TABLE IF NOT EXISTS clients (
 			id SERIAL PRIMARY KEY,
-			name TEXT NOT NULL UNIQUE
+			name TEXT NOT NULL UNIQUE,
+			techEmail TEXT,
+			purchaseEmail TEXT
 		)
 	`)
 	if err != nil {
