@@ -1,4 +1,4 @@
-FROM dhi.io/golang:1.26-dev AS build
+FROM dhi.io/golang:1.27-dev AS build
 WORKDIR /build
 COPY *.go go.* .
 RUN go mod download

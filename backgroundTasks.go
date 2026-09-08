@@ -32,18 +32,10 @@ func updateDomains(progress chan<- string) {
 		}
 	}
 
-	// Get all domains
-	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
-	if err != nil {
-		log.Printf("Failed to get domains: %v\n", err)
-		return
-	}
-	defer rows.Close()
-
 	// Collect rows into a slice of Domain structs
-	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
+	domains, err := getDomains()
 	if err != nil {
-		log.Printf("Failed to collect domains: %v\n", err)
+		log.Println("Update domains failed: could not fetch domains")
 		return
 	}
 
@@ -95,17 +87,9 @@ func sendExpDomReminders(progress chan<- string) {
 		}
 	}
 
-	// Get all domains
-	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
+	domains, err := getDomains()
 	if err != nil {
-		log.Printf("Failed to get domains: %v\n", err)
-		return
-	}
-	defer rows.Close()
-
-	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
-	if err != nil {
-		log.Printf("Failed to collect domains: %v\n", err)
+		log.Println("Failed to send reminders: could not fetch domains")
 		return
 	}
 	// Array to hold domains needing reminders
@@ -175,17 +159,9 @@ func sendExpDomReminders(progress chan<- string) {
 }
 
 func detectNameserverChanges() {
-	// Get all domains
-	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
+	domains, err := getDomains()
 	if err != nil {
-		log.Printf("Failed to get domains: %v\n", err)
-		return
-	}
-	defer rows.Close()
-
-	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
-	if err != nil {
-		log.Printf("Failed to collect domains: %v\n", err)
+		log.Println("Failed to detect nameserver changes: could not fetch domains")
 		return
 	}
 
@@ -249,7 +225,8 @@ func detectNameserverChanges() {
 			strings.Join(change.OldNS, ", "),
 			strings.Join(change.NewNS, ", "),
 		)
-		listChanges.WriteString(domainCard("#e3b341", getConfig().BaseURL+"/dash/?q="+change.Domain, change.Domain, subtitle, "") + nsDetails)
+		listChanges.WriteString(domainCard("#e3b341", getConfig().BaseURL+"/dash/?q="+change.Domain, change.Domain, subtitle, ""))
+		listChanges.WriteString(nsDetails)
 	}
 
 	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">Nameserver changes were detected for <strong>%d domain(s)</strong>. The database has been updated automatically.</p>`, len(NSChanges))

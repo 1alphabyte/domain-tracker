@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/likexian/whois"
 	whoisparser "github.com/likexian/whois-parser"
 	"github.com/openrdap/rdap"
@@ -279,4 +280,23 @@ func getTLSCert(domain string) (CommonName string, validTo time.Time, issuer str
 		return "", time.Time{}, "", nil, err
 	}
 	return cert.Subject.CommonName, cert.NotAfter, cert.Issuer.CommonName, certJSON, nil
+}
+
+func getDomains() ([]Domain, error) {
+	// Get all domains
+	rows, err := db.Query(context.TODO(), "SELECT * FROM domains")
+	if err != nil {
+		log.Printf("Failed to get domains: %v\n", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Collect rows into a slice of Domain structs
+	domains, err := pgx.CollectRows(rows, pgx.RowToStructByName[Domain])
+	if err != nil {
+		log.Printf("Failed to collect domains: %v\n", err)
+		return nil, err
+	}
+
+	return domains, nil
 }

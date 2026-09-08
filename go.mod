@@ -1,15 +1,15 @@
 module utsav2.dev/domain-tracker/v3
 
-go 1.26.1
+go 1.27.1
 
 require (
 	github.com/dustin/go-humanize v1.0.1
-	github.com/jackc/pgx/v5 v5.10.0
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/likexian/whois v1.15.7
 	github.com/likexian/whois-parser v1.24.21
-	github.com/openrdap/rdap v0.10.1
+	github.com/openrdap/rdap v0.10.2
 	github.com/wneessen/go-mail v0.8.1
-	golang.org/x/crypto v0.54.0
+	golang.org/x/crypto v0.57.0
 )
 
 require (
@@ -21,7 +21,7 @@ require (
 	github.com/likexian/gokit v0.25.16 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 )

@@ -606,7 +606,7 @@ func main() {
 	mux.HandleFunc("/api/clientAdd", clientAddHandler)
 	mux.HandleFunc("/api/delete/", deleteHandler)
 	mux.HandleFunc("/api/refreshAll", manRefHandler)
-	mux.HandleFunc("/api/deleteClient", deleteClientHandler)
+	mux.HandleFunc("/api/deleteClient/", deleteClientHandler)
 	mux.HandleFunc("/api/tlsAddDomain", tlsAddHandler)
 	mux.HandleFunc("/api/tlsList", tlsListHandler)
 	mux.HandleFunc("/api/tlsDelete/", deleteTLSHandler)
@@ -619,15 +619,14 @@ func main() {
 			return
 		}
 
-		staticDir := "./static"
-		// Clean and join the path
-		joinedPath := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
-
-		absStaticDir, err := filepath.Abs(staticDir)
+		absStaticDir, err := filepath.Abs("./static")
 		if err != nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
+
+		// Clean and join the path
+		joinedPath := filepath.Join(absStaticDir, filepath.Clean(r.URL.Path))
 
 		absJoinedPath, err := filepath.Abs(joinedPath)
 		if err != nil {
