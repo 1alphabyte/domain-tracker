@@ -9,23 +9,27 @@ async function loadDomains() {
 			if (res.status === 200) {
 				return res.json();
 			} else if (res.status == 401) {
-				alert("Unauthorized");
 				if (localStorage.getItem("auth")) localStorage.removeItem("auth");
 				if (searchParms.has("q") && searchParms.get("q").length > 0)
 					location.assign(`/login/?q=${searchParms.get("q")}`);
 				else
 					location.assign("/login/");
 			} else if (res.status == 204) {
+				alert("You have no domains, to get started, please add a domain.");
 				return [];
 			} else {
 				console.error(res);
 				return null;
 			}
 		})
-	let clients = await fetch("/api/clientList").then((res) => {
+	let clients = await fetch("/api/clientList").then(async (res) => {
 		if (res.status === 200) {
-			return res.json();
+			let resJSON = await res.json();
+			resJSON.sort((a, b) => a.name.localeCompare(b.name));
+			return resJSON;
 		} else if (res.status == 204) {
+			alert("You have no clients, a client is required to add a domain, please add a client to proceed.");
+			document.getElementById("AddCDiag").showModal();
 			return [];
 		} else {
 			console.error(res);

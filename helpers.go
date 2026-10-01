@@ -238,7 +238,7 @@ func sendEmail(subj string, body string) error {
 
 	message.SetBodyString(mail.TypeTextHTML, body)
 
-	// --- Create the client ---
+	// --- Create the mail client ---
 	c, err := mail.NewClient(
 		getConfig().SMTPHost,
 		mail.WithPort(getConfig().SMTPPort),
