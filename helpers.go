@@ -224,12 +224,13 @@ func fetchDomainData(domain string) (exp time.Time, ns []string, reg string, raw
 	return exp, ns, reg, rawData, dns, nil
 }
 
-func sendEmail(subj string, body string) error {
+func sendEmail(subj string, body string, toEmail string) error {
+	config := getConfig()
 	message := mail.NewMsg(mail.WithNoDefaultUserAgent())
-	if err := message.From(getConfig().FromEmail); err != nil {
+	if err := message.From(config.FromEmail); err != nil {
 		log.Print("failed to set From address:", err)
 	}
-	if err := message.ToFromString(getConfig().EmailForExp); err != nil {
+	if err := message.ToFromString(toEmail); err != nil {
 		log.Print("failed to set To address:", err)
 	}
 	message.SetMessageIDWithValue(generateSessionToken() + "@domain-tracker")
@@ -240,11 +241,11 @@ func sendEmail(subj string, body string) error {
 
 	// --- Create the client ---
 	c, err := mail.NewClient(
-		getConfig().SMTPHost,
-		mail.WithPort(getConfig().SMTPPort),
+		config.SMTPHost,
+		mail.WithPort(config.SMTPPort),
 		mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithUsername(getConfig().SMTP_USER),
-		mail.WithPassword(getConfig().SMTPPass),
+		mail.WithUsername(config.SMTP_USER),
+		mail.WithPassword(config.SMTPPass),
 		mail.WithSSL(),
 	)
 	if err != nil {

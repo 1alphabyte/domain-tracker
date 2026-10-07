@@ -50,8 +50,10 @@ type Domain struct {
 }
 
 type Client struct {
-	ID   int    `db:"id"`
-	Name string `db:"name" json:"name"`
+	ID            int    `db:"id"`
+	Name          string `db:"name" json:"name"`
+	TechEmail     string `db:"techEmail" json:"techEmail"`
+	PurchaseEmail string `db:"purchaseEmail" json:"purchaseEmail"`
 }
 
 type DomainReqBody struct {

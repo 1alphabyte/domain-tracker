@@ -213,12 +213,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func clientListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func clientHandler(w http.ResponseWriter, r *http.Request) {
 	// Check session token
 	userID, err := checkSessionToken(r)
 	if err != nil {
@@ -229,6 +224,19 @@ func clientListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	switch r.Method {
+	case "GET":
+		clientListHandler(w)
+	case "POST":
+		clientAddHandler(w, r)
+	case "DELETE":
+		deleteClientHandler(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func clientListHandler(w http.ResponseWriter) {
 	// Get all rows from the clients SQL table
 	rows, err := db.Query(context.TODO(), "SELECT * FROM clients")
 	if err != nil {
@@ -257,21 +265,6 @@ func clientListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientAddHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Check session token
-	userID, err := checkSessionToken(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	} else if userID != 1 {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
 	// Get the request body and parse it
 	var client Client
 	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
@@ -281,12 +274,12 @@ func clientAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure the required fields are present
-	if client.Name == "" {
+	if client.Name == "" || (client.TechEmail == "" && client.PurchaseEmail == "") {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
-	_, err = db.Exec(context.TODO(), "INSERT INTO clients (name) VALUES ($1)", client.Name)
+	_, err := db.Exec(context.TODO(), "INSERT INTO clients (name, techEmail, purchaseEmail) VALUES ($1, $2, $3)", client.Name, client.TechEmail, client.PurchaseEmail)
 	if err != nil {
 		http.Error(w, "Failed to add client", http.StatusInternalServerError)
 		log.Print(err)
@@ -335,23 +328,8 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "DELETE" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Check session token
-	userID, err := checkSessionToken(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	} else if userID != 1 {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
 	// Extract the ID from the URL path
-	// Expected format: /api/deleteClient/:id
+	// Expected format: DELETE /api/client/:id
 	id := strings.Split(r.URL.Path, "/")[3]
 	if id == "" {
 		http.Error(w, "Missing ID", http.StatusBadRequest)
@@ -602,14 +580,12 @@ func main() {
 	mux.HandleFunc("/api/get", getHandler)
 	mux.HandleFunc("/api/edit", editHandler)
 	mux.HandleFunc("/api/add", addHandler)
-	mux.HandleFunc("/api/clientList", clientListHandler)
-	mux.HandleFunc("/api/clientAdd", clientAddHandler)
 	mux.HandleFunc("/api/delete/", deleteHandler)
 	mux.HandleFunc("/api/refreshAll", manRefHandler)
-	mux.HandleFunc("/api/deleteClient/", deleteClientHandler)
 	mux.HandleFunc("/api/tlsAddDomain", tlsAddHandler)
 	mux.HandleFunc("/api/tlsList", tlsListHandler)
 	mux.HandleFunc("/api/tlsDelete/", deleteTLSHandler)
+	mux.HandleFunc("/api/client", clientHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

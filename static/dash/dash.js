@@ -22,7 +22,7 @@ async function loadDomains() {
 				return null;
 			}
 		})
-	let clients = await fetch("/api/clientList").then((res) => {
+	let clients = await fetch("/api/client").then((res) => {
 		if (res.status === 200) {
 			return res.json();
 		} else if (res.status == 204) {
@@ -46,7 +46,6 @@ async function loadDomains() {
 	});
 	let newDropdown = dropdown.cloneNode(true);
 	newDropdown.id = "delCSel";
-	document.getElementById("delCName").appendChild(newDropdown);
 	sessionStorage.setItem("domains", JSON.stringify(domains));
 	domains.forEach((d) => {
 		let row = document.createElement("tr");
@@ -235,10 +234,15 @@ function main() {
 		e.preventDefault();
 		document.getElementById('AddCDiag').close();
 		let name = document.getElementById("clientName").value;
+		let techEmail = document.getElementById("techEmail").value;
+		let purchaseEmail = document.getElementById("purchaseEmail").value;
+		if (name === "" || (techEmail === "" && purchaseEmail === "")) {
+			return alert("Please fill in all required fields");
+		}
 		document.getElementById("addCForm").reset();
-		fetch("/api/clientAdd", {
+		fetch("/api/client", {
 			method: "POST",
-			body: JSON.stringify({ name }),
+			body: JSON.stringify({ "name": name, "techEmail": techEmail, "purchaseEmail": purchaseEmail }),
 		}).then((res) => {
 			if (res.ok) {
 				alert("Client added");
@@ -280,10 +284,6 @@ function main() {
 				alert("Error updating domain");
 			}
 		});
-	});
-
-	document.getElementById("delC").addEventListener("click", () => {
-		document.getElementById("delCDiag").showModal();
 	});
 
 	let activeRefreshStream = null;
@@ -337,27 +337,6 @@ function main() {
 			const cellText = row.cells[0].firstChild.textContent.toLowerCase();
 			row.hidden = !cellText.includes(searchTerm);
 		});
-	});
-	document.getElementById("delCBtn").addEventListener("click", () => {
-		let id = document.getElementById("delCSel").value;
-		if (id === "null") {
-			alert("Please select a client");
-			return;
-		}
-		if (confirm("Are you sure?\nThis action cannot be undone.\nAll domains for this client MUST be deleted (including in TLS tracker) otherwise this will FAIL!")) {
-			fetch(`/api/deleteClient/${id}`, {
-				method: "DELETE",
-			}).then(async (res) => {
-				if (res.ok) {
-					alert("Client deleted");
-					location.reload();
-				} else if (res.status === 409) {
-					alert(await res.text());
-				} else {
-					alert("Error deleting client");
-				}
-			});
-		}
 	});
 }
 

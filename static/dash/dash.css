@@ -314,18 +314,6 @@ body > button {
 	margin-bottom: 4px;
 }
 
-/* Danger button for delete actions */
-#delC, #delCBtn {
-	background-color: var(--surface-3);
-	color: var(--red);
-	border: 1px solid var(--red);
-}
-
-#delC:hover, #delCBtn:hover {
-	background-color: var(--red);
-	color: #fff;
-}
-
 /* ── Table row hover ───────────────────────────────────────────── */
 tr:not(:first-child):not(:has(.rawDataBtn:hover)):hover td:not(.rawDataBtn) {
 	background-color: var(--surface-2);

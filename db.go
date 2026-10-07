@@ -12,10 +12,17 @@ import (
 var db *pgxpool.Pool
 
 func InitDBSetup() {
+	config := getConfig()
 	// check if the database has already been initialized
-	if _, err := os.Stat(getConfig().DBInitFile); err == nil {
-		// Database has already been initialized
-		return
+	if _, err := os.Stat(config.DBInitFile); err == nil {
+		// Database has already been initialized, check schema version
+		file, err := os.ReadFile(config.DBInitFile)
+		if err != nil {
+			log.Fatalf("Failed to get schema version can't safely continue: %s", err)
+		}
+		if string(file) == "v2" {
+			return
+		}
 	}
 
 	_, err := db.Exec(context.TODO(), `
@@ -89,18 +96,18 @@ func InitDBSetup() {
 	}
 
 	// create an initial user
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(getConfig().InitPwd), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(config.InitPwd), bcrypt.DefaultCost)
 	if err != nil {
 		log.Fatalln("Failed to hash password:", err)
 	}
 
-	_, err = db.Exec(context.TODO(), "INSERT INTO users (username, password) VALUES ($1, $2)", getConfig().InitUsr, hashedPassword)
+	_, err = db.Exec(context.TODO(), "INSERT INTO users (username, password) VALUES ($1, $2)", config.InitUsr, hashedPassword)
 	if err != nil {
 		log.Fatalf("Failed to create initial user: %v\n", err)
 	}
 
 	// Create a file to indicate that the database has been initialized
-	if err := os.WriteFile(getConfig().DBInitFile, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(config.DBInitFile, []byte("v2"), 0644); err != nil {
 		log.Fatalf("Failed to create db init file (check cfg): %v\n", err)
 	}
 }

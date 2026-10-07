@@ -18,17 +18,17 @@ func getExpiringByClient() map[int][]Domain {
 		return nil
 	}
 
-	ExpiringDomains := make(map[int][]Domain)
+	expiringDomains := make(map[int][]Domain)
 
 	for _, domain := range domains {
 		currTime := time.Now().AddDate(0, 0, getConfig().DaysDomainExp)
 
 		if currTime.After(domain.Expiration) {
-			ExpiringDomains[domain.ClientID] = append(ExpiringDomains[domain.ClientID], domain)
+			expiringDomains[domain.ClientID] = append(expiringDomains[domain.ClientID], domain)
 		}
 	}
 
-	return ExpiringDomains
+	return expiringDomains
 }
 
 func sendEmailToClient(domains map[int][]Domain) {
@@ -38,6 +38,10 @@ func sendEmailToClient(domains map[int][]Domain) {
 		if err != nil {
 			log.Println("failed to get client", err)
 			client = "Unknown"
+		}
+		if techEmail == "" && purchaseEmail == "" {
+			log.Println("Client has no email")
+			return
 		}
 		var domainList strings.Builder
 		var pbWarn string
@@ -75,6 +79,9 @@ func sendEmailToClient(domains map[int][]Domain) {
 			getConfig().DaysDomainExp,
 			pbWarn)
 
-		err = sendEmail("Your domains require action", emailHTML("Domains expiring soon", intro+domainList.String()))
+		err = sendEmail("Your domains require action", emailHTML("Domains expiring soon", intro+domainList.String()), techEmail+","+purchaseEmail)
+		if err != nil {
+			log.Println("Failed to send email to client", err)
+		}
 	}
 }
