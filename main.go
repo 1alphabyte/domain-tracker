@@ -582,9 +582,6 @@ func main() {
 	// Initialize the database (create tables if they don't exist)
 	InitDBSetup()
 
-	sendEmailToClient(getExpiringByClient())
-	os.Exit(1)
-
 	// Backgrounds tasks using a goroutine and ticker
 	// Send weekly expiration reminders and update domain info
 	// Runs every 7 days
