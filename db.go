@@ -53,7 +53,8 @@ func InitDBSetup() {
 			id SERIAL PRIMARY KEY,
 			name TEXT NOT NULL UNIQUE,
 			techEmail TEXT,
-			purchaseEmail TEXT
+			purchaseEmail TEXT,
+			reminderSent BOOLEAN DEFAULT FALSE
 		)
 	`)
 	if err != nil {

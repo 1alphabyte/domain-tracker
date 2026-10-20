@@ -81,6 +81,23 @@
 			<input type="submit" value="Edit"/>
 		</form>
 	</dialog>
+	<dialog id="editCDiag">
+		<button class="closeDiag">&#10006;</button>
+		<span id="eCNameS"></span>
+		<div id="editCDInner" hidden>
+			<h3>Edit Client</h3>
+			<form id="editCForm">
+				<label for="eClientName">Client Name</label>
+				<input type="text" id="eClientName" required minlength="3" maxlength="255" autofocus />
+				<label for="eTechEmail">Technical Email</label>
+				<input type="email" id="eTechEmail" placeholder="Technical Email" />
+				<label for="ePurchaseEmail">Purchase Email</label>
+				<input type="email" id="ePurchaseEmail" placeholder="Purchase Email" />
+				<input type="submit" value="Edit"/>
+			</form>
+			<button id="deleteClient">Delete Client</button>
+		</div>
+	</dialog>
 
 	<dialog id="manRefDiag">
 		<button class="closeDiag">&#10006;</button>

@@ -32,15 +32,21 @@ func getExpiringByClient() map[int][]Domain {
 }
 
 func sendEmailToClient(domains map[int][]Domain) {
+	config := getConfig()
 	for clientID, d := range domains {
 		var client, techEmail, purchaseEmail string
-		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail)
+		var reminderSent bool
+		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail, reminderSent FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail, &reminderSent)
 		if err != nil {
 			log.Println("failed to get client", err)
-			client = "Unknown"
+			return
 		}
 		if techEmail == "" && purchaseEmail == "" {
 			log.Println("Client has no email")
+			return
+		}
+		if reminderSent {
+			log.Println("Client has already been sent a reminder")
 			return
 		}
 		var domainList strings.Builder
@@ -56,7 +62,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 				humanize.Time(domain.Expiration)))
 			if domain.Registrar != "Porkbun LLC" {
 				pbWarn = `<p style="margin:0 0 20px;font-size:14px;color:#57606a;">
-					Additionally, it looks like some or all of your domain aren't with our partner registrar, Porkbun. If you are okay with it, we recommend transferring your domains to Porkbun to ensure that you can take advantage of our renewal service. Please reply back to this email if you would like to transfer your domains to Porkbun.
+					Additionally, it looks like some or all of your domain aren't with our partner registrar, Porkbun. If you're okay with it, we recommend transferring your domains to Porkbun to ensure that you can take full advantage of our domain services. Please indicate in your reply if you would like to transfer your domains to Porkbun.
 				</p>`
 			}
 		}
@@ -76,12 +82,16 @@ func sendEmailToClient(domains map[int][]Domain) {
 			%s`,
 			client,
 			introI,
-			getConfig().DaysDomainExp,
+			config.DaysDomainExp,
 			pbWarn)
 
-		err = sendEmail("Your domains require action", emailHTML("Domains expiring soon", intro+domainList.String()), techEmail+","+purchaseEmail)
+		err = sendEmail("Your domains require action", emailHTML("Domains expiring soon", intro+domainList.String()), techEmail+","+purchaseEmail, config.ReplyEmail)
 		if err != nil {
 			log.Println("Failed to send email to client", err)
+		}
+		_, err = db.Exec(context.TODO(), "UPDATE clients SET reminderSent = TRUE WHERE id = $1", clientID)
+		if err != nil {
+			log.Println("Failed to update client reminderSent", err)
 		}
 	}
 }

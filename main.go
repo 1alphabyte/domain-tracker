@@ -229,6 +229,8 @@ func clientHandler(w http.ResponseWriter, r *http.Request) {
 		clientListHandler(w)
 	case "POST":
 		clientAddHandler(w, r)
+	case "PUT":
+		clientEditHandler(w, r)
 	case "DELETE":
 		deleteClientHandler(w, r)
 	default:
@@ -262,6 +264,38 @@ func clientListHandler(w http.ResponseWriter) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(clients)
+}
+
+func clientEditHandler(w http.ResponseWriter, r *http.Request) {
+	var req Client
+
+	id := strings.Split(r.URL.Path, "/")[3]
+	if id == "" {
+		http.Error(w, "Missing ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+	if req.Name == "" || (req.TechEmail == "" && req.PurchaseEmail == "") {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	c, err := db.Exec(context.TODO(), "UPDATE clients SET name = $1, techEmail = $2, purchaseEmail = $3 WHERE id = $4", req.Name, req.TechEmail, req.PurchaseEmail, id)
+	if err != nil {
+		http.Error(w, "Failed to update client", http.StatusInternalServerError)
+		log.Print(err)
+		return
+	}
+	// Make sure the client was found (and updated)
+	if c.RowsAffected() == 0 {
+		http.Error(w, "Client not found", http.StatusNotFound)
+		return
+	}
 }
 
 func clientAddHandler(w http.ResponseWriter, r *http.Request) {
@@ -548,6 +582,9 @@ func main() {
 	// Initialize the database (create tables if they don't exist)
 	InitDBSetup()
 
+	sendEmailToClient(getExpiringByClient())
+	os.Exit(1)
+
 	// Backgrounds tasks using a goroutine and ticker
 	// Send weekly expiration reminders and update domain info
 	// Runs every 7 days
@@ -564,6 +601,7 @@ func main() {
 				dbCleanup()
 				updateDomains(nil)
 				sendExpDomReminders(nil)
+				sendEmailToClient(getExpiringByClient())
 				updateTLSCerts()
 				sendTLSExpirationReminders()
 				// Write last run

@@ -45,7 +45,18 @@ async function loadDomains() {
 		document.getElementById("Eclient").appendChild(option.cloneNode(true));
 	});
 	let newDropdown = dropdown.cloneNode(true);
-	newDropdown.id = "delCSel";
+	newDropdown.id = "editCSel";
+	document.getElementById("eCNameS").appendChild(newDropdown);
+	document.getElementById("editCSel").addEventListener("change", (e) => {
+		let client = clients.find((c) => c.ID == e.target.value);
+		if (client) {
+			document.getElementById("editCDInner").hidden = false;
+			document.getElementById("eClientName").value = client.name;
+			document.getElementById("eTechEmail").value = client.techEmail;
+			document.getElementById("ePurchaseEmail").value = client.purchaseEmail;
+			document.getElementById("editCDInner").dataset.id = client.ID;
+		}
+	});
 	sessionStorage.setItem("domains", JSON.stringify(domains));
 	domains.forEach((d) => {
 		let row = document.createElement("tr");
@@ -259,6 +270,44 @@ function main() {
 	});
 	document.getElementById("AddC").addEventListener("click", () => {
 		document.getElementById("AddCDiag").showModal();
+	});
+
+	document.getElementById("editC").addEventListener("click", () => {
+		document.getElementById("editCDiag").showModal();
+	});
+
+	document.getElementById("editCForm").addEventListener("submit", (e) => {
+		e.preventDefault();
+		fetch(`/api/client/${e.target.parentElement.dataset.id}`, {
+			method: "PUT",
+			body: JSON.stringify({
+				name: document.getElementById("eClientName").value,
+				techEmail: document.getElementById("eTechEmail").value,
+				purchaseEmail: document.getElementById("ePurchaseEmail").value,
+			}),
+		}).then((res) => {
+			if (res.ok) {
+				alert("Client updated");
+				location.reload();
+			} else {
+				alert("Error updating client");
+			}
+		});
+	});
+
+	document.getElementById("deleteClient").addEventListener("click", (e) => {
+		if (confirm("Are you sure you want to delete this client?\nTHIS ACTION CANNOT BE UNDONE")) {
+			fetch(`/api/client/${e.target.parentElement.dataset.id}`, {
+				method: "DELETE",
+			}).then((res) => {
+				if (res.ok) {
+					alert("Client deleted");
+					location.reload();
+				} else {
+					alert("Error deleting client");
+				}
+			});
+		}
 	});
 
 	document.querySelectorAll(".closeDiag").forEach((b) => {

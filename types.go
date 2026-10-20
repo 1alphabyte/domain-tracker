@@ -11,6 +11,7 @@ type Config struct {
 	DaysCertExp      int       `json:"remindCertExpDays"`
 	EmailForExp      string    `json:"to_email"`
 	FromEmail        string    `json:"from_email"`
+	ReplyEmail       string    `json:"replyTo_email"`
 	SMTPHost         string    `json:"smtp_host"`
 	SMTP_USER        string    `json:"SMTP_USER"`
 	SMTPPass         string    `json:"SMTP_PASSWORD"`

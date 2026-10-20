@@ -224,7 +224,7 @@ func fetchDomainData(domain string) (exp time.Time, ns []string, reg string, raw
 	return exp, ns, reg, rawData, dns, nil
 }
 
-func sendEmail(subj string, body string, toEmail string) error {
+func sendEmail(subj string, body string, toEmail string, replyTo string) error {
 	config := getConfig()
 	message := mail.NewMsg(mail.WithNoDefaultUserAgent())
 	if err := message.From(config.FromEmail); err != nil {
@@ -238,6 +238,9 @@ func sendEmail(subj string, body string, toEmail string) error {
 	message.Subject(subj)
 
 	message.SetBodyString(mail.TypeTextHTML, body)
+	if replyTo != "" {
+		message.ReplyTo(replyTo)
+	}
 
 	// --- Create the client ---
 	c, err := mail.NewClient(

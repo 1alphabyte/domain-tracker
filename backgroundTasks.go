@@ -65,6 +65,16 @@ func updateDomains(progress chan<- string) {
 
 			send(fmt.Sprintf("Updated %s (expires %s)", d.Domain, exp.Format("01/02/2006")))
 			refreshed++
+
+			// check if domain was renewed
+			if exp.After(d.Expiration) {
+				send(fmt.Sprintf("Domain %s was renewed", d.Domain))
+				_, err = db.Exec(context.TODO(), "UPDATE clients SET reminderSent = FALSE WHERE id = $1", d.ClientID)
+				if err != nil {
+					log.Println("Failed to update client reminderSent", err)
+				}
+			}
+
 			time.Sleep(15 * time.Second) // to avoid rate limiting
 		}
 	}
@@ -150,7 +160,7 @@ func sendExpDomReminders(progress chan<- string) {
 
 	send("Sending expiration reminder email...")
 	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">The following %d domain(s) are expiring within the next <strong>%d days</strong>. Click a domain to view it in Domain Tracker.</p>`, len(needReminder), config.DaysDomainExp)
-	err = sendEmail("Domains expiring soon", emailHTML("Domains expiring soon", intro+domainList.String()), config.EmailForExp)
+	err = sendEmail("Domains expiring soon", emailHTML("Domains expiring soon", intro+domainList.String()), config.EmailForExp, "")
 	if err != nil {
 		send(fmt.Sprintf("Failed to send email: %v", err))
 	} else {
@@ -230,7 +240,7 @@ func detectNameserverChanges() {
 	}
 
 	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">Nameserver changes were detected for <strong>%d domain(s)</strong>. The database has been updated automatically.</p>`, len(NSChanges))
-	err = sendEmail("Nameserver changes detected", emailHTML("Nameserver changes detected", intro+listChanges.String()), getConfig().EmailForExp)
+	err = sendEmail("Nameserver changes detected", emailHTML("Nameserver changes detected", intro+listChanges.String()), getConfig().EmailForExp, "")
 	if err != nil {
 		log.Printf("Failed to send nameserver change alert email: %v\n", err)
 	}
@@ -317,7 +327,7 @@ func sendTLSExpirationReminders() {
 	}
 
 	intro := fmt.Sprintf(`<p style="margin:0 0 20px;font-size:14px;color:#57606a;">The following %d TLS certificate(s) are expiring within the next <strong>%d days</strong>. Click a certificate to view it in the TLS tracker.</p>`, len(needReminder), getConfig().DaysCertExp)
-	err = sendEmail("TLS certificates expiring soon", emailHTML("TLS certificates expiring soon", intro+certList.String()), getConfig().EmailForExp)
+	err = sendEmail("TLS certificates expiring soon", emailHTML("TLS certificates expiring soon", intro+certList.String()), getConfig().EmailForExp, "")
 	if err != nil {
 		log.Printf("TLS: Failed to send expiration reminder email: %v\n", err)
 	}

@@ -7,6 +7,7 @@
   	"remindCertExpDays": 15,
   	"to_email": "exp@example.com",
   	"from_email": "domaintrk@example.com",
+	"replyTo_email": "incoming@email.example.com",
   	"smtp_host": "smtp.example.org",
   	"SMTP_USER": "example",
   	"SMTP_PASSWORD": "example123",
