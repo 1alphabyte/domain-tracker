@@ -52,8 +52,8 @@ func InitDBSetup() {
 		CREATE TABLE IF NOT EXISTS clients (
 			id SERIAL PRIMARY KEY,
 			name TEXT NOT NULL UNIQUE,
-			techEmail TEXT,
-			purchaseEmail TEXT,
+			techEmail TEXT NOT NULL,
+			purchaseEmail TEXT NOT NULL,
 			reminderSent BOOLEAN DEFAULT FALSE
 		)
 	`)

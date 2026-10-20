@@ -19,9 +19,10 @@ func getExpiringByClient() map[int][]Domain {
 	}
 
 	expiringDomains := make(map[int][]Domain)
+	config := getConfig()
 
 	for _, domain := range domains {
-		currTime := time.Now().AddDate(0, 0, getConfig().DaysDomainExp)
+		currTime := time.Now().AddDate(0, 0, config.DaysDomainExp)
 
 		if currTime.After(domain.Expiration) {
 			expiringDomains[domain.ClientID] = append(expiringDomains[domain.ClientID], domain)
