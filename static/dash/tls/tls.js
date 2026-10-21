@@ -175,9 +175,6 @@ function main() {
 	document.getElementById("addD").addEventListener("click", () => {
 		document.getElementById("addDDiag").showModal();
 	});
-	document.getElementById("AddC").addEventListener("click", () => {
-		document.getElementById("AddCDiag").showModal();
-	});
 
 	document.querySelectorAll(".closeDiag").forEach((b) => {
 		b.addEventListener("click", (e) => {

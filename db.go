@@ -25,12 +25,49 @@ func InitDBSetup() {
 		} else if string(file) == "v1" {
 			_, err := db.Exec(context.TODO(), `
 				ALTER TABLE clients 
-				ADD COLUMN reminderSent BOOLEAN DEFAULT FALSE,
 				ADD COLUMN techEmail TEXT,
 				ADD COLUMN purchaseEmail TEXT
 			`)
 			if err != nil {
 				log.Fatalf("Failed to migrate database from v1 to v2: %s", err)
+			}
+			_, err = db.Exec(context.TODO(), `
+				UPDATE clients
+				SET techEmail = '',
+				purchaseEmail = ''
+				WHERE techEmail IS NULL OR purchaseEmail IS NULL
+			`)
+			if err != nil {
+				log.Fatalf("Failed to migrate database from v1 to v2: %s", err)
+			}
+			_, err = db.Exec(context.TODO(), `
+				ALTER TABLE clients
+    			ALTER COLUMN techEmail SET NOT NULL,
+    			ALTER COLUMN purchaseEmail SET NOT NULL
+			`)
+			if err != nil {
+				log.Fatalf("Failed to migrate database from v1 to v2: %s", err)
+			}
+			_, err = db.Exec(context.TODO(), `
+				CREATE TABLE reminder_deliveries (
+					domain_id INTEGER NOT NULL PRIMARY KEY REFERENCES domains(id) ON DELETE CASCADE,
+					reminder_type TEXT NOT NULL DEFAULT 'expiration',
+					expiration_date DATE NOT NULL,
+					sent_at TIMESTAMPTZ,
+					status TEXT NOT NULL DEFAULT 'pending',
+					recipient TEXT NOT NULL,
+					ticket_id TEXT,
+					error TEXT,
+					created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+					UNIQUE (domain_id, reminder_type, expiration_date)
+				)
+			`)
+
+			if err != nil {
+				log.Fatalf("Failed to migrate database from v1 to v2: Failed to create reminder_deliveries table: %v\n", err)
+			}
+			if err := os.WriteFile(config.DBInitFile, []byte("v2"), 0644); err != nil {
+				log.Fatalf("Failed to create db init file (check cfg): %v\n", err)
 			}
 			return
 		} else {
@@ -66,8 +103,7 @@ func InitDBSetup() {
 			id SERIAL PRIMARY KEY,
 			name TEXT NOT NULL UNIQUE,
 			techEmail TEXT NOT NULL,
-			purchaseEmail TEXT NOT NULL,
-			reminderSent BOOLEAN DEFAULT FALSE
+			purchaseEmail TEXT NOT NULL
 		)
 	`)
 	if err != nil {
@@ -107,6 +143,25 @@ func InitDBSetup() {
 	`)
 	if err != nil {
 		log.Fatalf("Failed to create crts table: %v\n", err)
+	}
+
+	_, err = db.Exec(context.TODO(), `
+		CREATE TABLE reminder_deliveries (
+			domain_id INTEGER NOT NULL PRIMARY KEY REFERENCES domains(id) ON DELETE CASCADE,
+			reminder_type TEXT NOT NULL DEFAULT 'expiration',
+			expiration_date DATE NOT NULL,
+			sent_at TIMESTAMPTZ,
+			status TEXT NOT NULL DEFAULT 'pending',
+			recipient TEXT NOT NULL,
+			ticket_id TEXT,
+			error TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			UNIQUE (domain_id, reminder_type, expiration_date)
+		)
+	`)
+
+	if err != nil {
+		log.Fatalf("Failed to create reminder_deliveries table: %v\n", err)
 	}
 
 	// create an initial user

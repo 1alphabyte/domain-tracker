@@ -36,8 +36,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 	config := getConfig()
 	for clientID, d := range domains {
 		var client, techEmail, purchaseEmail string
-		var reminderSent bool
-		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail, reminderSent FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail, &reminderSent)
+		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail` FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail)
 		if err != nil {
 			log.Println("failed to get client", err)
 			continue
@@ -46,14 +45,42 @@ func sendEmailToClient(domains map[int][]Domain) {
 			log.Println("Client has no email")
 			continue
 		}
-		if reminderSent {
-			log.Println("Client has already been sent a reminder")
-			continue
-		}
 		var domainList strings.Builder
 		var pbWarn string
 
+		toEmailStr := techEmail + "," + purchaseEmail
+		if techEmail == "" || purchaseEmail == "" {
+			if techEmail == "" {
+				toEmailStr = purchaseEmail
+			} else if purchaseEmail == "" {
+				toEmailStr = techEmail
+			}
+		}
+
 		for _, domain := range d {
+			dbRes, err := db.Exec(context.TODO(), `
+				INSERT INTO reminder_deliveries
+					(domain_id,
+					reminder_type,
+					expiration_date,
+					recipient,
+					status)
+				VALUES
+					($1,
+					'expiration',
+					$2,
+					$3,
+					'pending')
+				ON CONFLICT (domain_id, reminder_type, expiration_date) DO NOTHING`,
+				domain.ID, domain.Expiration, toEmailStr)
+			if err != nil {
+				log.Println("Failed to insert reminder deliveries", err)
+				continue
+			}
+			if dbRes.RowsAffected() == 0 {
+				log.Println("Reminder already sent for this domain")
+				continue
+			}
 			domainList.WriteString(domainCard(
 				"#e3b341",
 				"https://"+domain.Domain+"/",
@@ -63,7 +90,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 				humanize.Time(domain.Expiration)))
 			if domain.Registrar != "Porkbun LLC" {
 				pbWarn = `<p style="margin:0 0 20px;font-size:14px;color:#57606a;">
-					Additionally, it looks like some or all of your domain aren't with our partner registrar, Porkbun. If you're okay with it, we recommend transferring your domains to Porkbun to ensure that you can take full advantage of our domain services. Please indicate in your reply if you would like to transfer your domains to Porkbun.
+					Additionally, it looks like some or all of your domains aren't with our partner registrar, Porkbun. If you're okay with it, we recommend transferring your domains to Porkbun to ensure that you can take full advantage of our domain services. Please indicate in your reply if you would like to transfer your domains to Porkbun.
 				</p>`
 			}
 		}
@@ -78,7 +105,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 			<p style="margin:0 0 20px;font-size:14px;color:#57606a;">
 				Dear %s,
 				%s expiring within the next <strong>%d days</strong>.
-				Please reply back to this email to either approve the renewal of this domain or to let us know if you no longer wish to keep it.
+				Please reply back to this email to either approve the renewal of these domains or to let us know if you no longer wish to keep them.
 			</p>
 			%s`,
 			client,
@@ -86,13 +113,23 @@ func sendEmailToClient(domains map[int][]Domain) {
 			config.DaysDomainExp,
 			pbWarn)
 
-		err = sendEmail("Your domains require action", emailHTML("Domains expiring soon", intro+domainList.String()), techEmail+","+purchaseEmail, config.ReplyEmail)
+		err = sendEmail("Your domains are expiring soon", emailHTML("Your domains are expiring soon", intro+domainList.String()), toEmailStr, config.ReplyEmail)
 		if err != nil {
 			log.Println("Failed to send email to client", err)
+			for _, domain := range d {
+				_, err = db.Exec(context.TODO(), "UPDATE reminder_deliveries SET sent_at = null, status = 'error' WHERE domain_id = $1", domain.ID)
+				if err != nil {
+					log.Println("Failed to update reminder_deliveries", err)
+					continue
+				}
+			}
 		}
-		_, err = db.Exec(context.TODO(), "UPDATE clients SET reminderSent = TRUE WHERE id = $1", clientID)
-		if err != nil {
-			log.Println("Failed to update client reminderSent", err)
+		for _, domain := range d {
+			_, err = db.Exec(context.TODO(), "UPDATE reminder_deliveries SET sent_at = now(), status = 'sent' WHERE domain_id = $1", domain.ID)
+			if err != nil {
+				log.Println("Failed to update reminder_deliveries", err)
+				continue
+			}
 		}
 	}
 }

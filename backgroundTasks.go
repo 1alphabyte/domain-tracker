@@ -69,9 +69,9 @@ func updateDomains(progress chan<- string) {
 			// check if domain was renewed
 			if exp.After(d.Expiration) {
 				send(fmt.Sprintf("Domain %s was renewed", d.Domain))
-				_, err = db.Exec(context.TODO(), "UPDATE clients SET reminderSent = FALSE WHERE id = $1", d.ClientID)
+				_, err = db.Exec(context.TODO(), "DELETE FROM reminder_deliveries WHERE domain_id = $1", d.ID)
 				if err != nil {
-					log.Println("Failed to update client reminderSent", err)
+					log.Println("Failed to update reminder_deliveries", err)
 				}
 			}
 
