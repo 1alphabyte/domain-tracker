@@ -14,7 +14,7 @@ func getExpiringByClient() map[int][]Domain {
 	// Get all domains
 	domains, err := getDomains()
 	if err != nil {
-		log.Println("Failed to get domains")
+		log.Println("Failed to get domains", err)
 		return nil
 	}
 
@@ -40,15 +40,15 @@ func sendEmailToClient(domains map[int][]Domain) {
 		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail, reminderSent FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail, &reminderSent)
 		if err != nil {
 			log.Println("failed to get client", err)
-			return
+			continue
 		}
 		if techEmail == "" && purchaseEmail == "" {
 			log.Println("Client has no email")
-			return
+			continue
 		}
 		if reminderSent {
 			log.Println("Client has already been sent a reminder")
-			return
+			continue
 		}
 		var domainList strings.Builder
 		var pbWarn string
@@ -56,7 +56,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 		for _, domain := range d {
 			domainList.WriteString(domainCard(
 				"#e3b341",
-				"https://cbt.io/?d="+domain.Domain,
+				"https://"+domain.Domain+"/",
 				domain.Domain,
 				fmt.Sprintf("Expires %s &middot; Client: %s &middot; Registrar: %s",
 					domain.Expiration.Format("01/02/2006"), client, domain.Registrar),

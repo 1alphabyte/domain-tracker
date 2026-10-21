@@ -229,10 +229,34 @@ func clientHandler(w http.ResponseWriter, r *http.Request) {
 		clientListHandler(w)
 	case "POST":
 		clientAddHandler(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func clientHandlerWithID(w http.ResponseWriter, r *http.Request) {
+	// Check session token
+	userID, err := checkSessionToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if userID != 1 {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	// Extract the ID from the URL path
+	// Expected format: DELETE /api/client/:id
+	id := strings.Split(r.URL.Path, "/")[3]
+	if id == "" {
+		http.Error(w, "Missing ID", http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
 	case "PUT":
-		clientEditHandler(w, r)
+		clientEditHandler(w, r, id)
 	case "DELETE":
-		deleteClientHandler(w, r)
+		deleteClientHandler(w, r, id)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -266,14 +290,8 @@ func clientListHandler(w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(clients)
 }
 
-func clientEditHandler(w http.ResponseWriter, r *http.Request) {
+func clientEditHandler(w http.ResponseWriter, r *http.Request, id string) {
 	var req Client
-
-	id := strings.Split(r.URL.Path, "/")[3]
-	if id == "" {
-		http.Error(w, "Missing ID", http.StatusBadRequest)
-		return
-	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -361,15 +379,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteClientHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract the ID from the URL path
-	// Expected format: DELETE /api/client/:id
-	id := strings.Split(r.URL.Path, "/")[3]
-	if id == "" {
-		http.Error(w, "Missing ID", http.StatusBadRequest)
-		return
-	}
-
+func deleteClientHandler(w http.ResponseWriter, r *http.Request, id string) {
 	c, err := db.Exec(context.TODO(), "DELETE FROM clients WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete client", http.StatusInternalServerError)
@@ -621,6 +631,7 @@ func main() {
 	mux.HandleFunc("/api/tlsList", tlsListHandler)
 	mux.HandleFunc("/api/tlsDelete/", deleteTLSHandler)
 	mux.HandleFunc("/api/client", clientHandler)
+	mux.HandleFunc("/api/client/", clientHandlerWithID)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

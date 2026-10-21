@@ -21,7 +21,7 @@ async function loadDomains() {
 				return null;
 			}
 		})
-		let clients = await fetch("/api/clientList")
+		let clients = await fetch("/api/client")
 			.then((res) => {
 				if (res.status === 200) {
 					return res.json();
@@ -171,25 +171,6 @@ function main() {
 		});
 
 	});
-
-	document.getElementById("addCForm").addEventListener("submit", (e) => {
-		e.preventDefault();
-		document.getElementById('AddCDiag').close();
-		let name = document.getElementById("clientName").value;
-		document.getElementById("addCForm").reset();
-		fetch("/api/clientAdd", {
-			method: "POST",
-			body: JSON.stringify({ name }),
-		}).then((res) => {
-			if (res.ok) {
-				alert("Client added");
-				location.reload();
-			} else {
-				alert("Error adding client");
-			}
-		});
-	});
-
 
 	document.getElementById("addD").addEventListener("click", () => {
 		document.getElementById("addDDiag").showModal();

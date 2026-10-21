@@ -22,6 +22,19 @@ func InitDBSetup() {
 		}
 		if string(file) == "v2" {
 			return
+		} else if string(file) == "v1" {
+			_, err := db.Exec(context.TODO(), `
+				ALTER TABLE clients 
+				ADD COLUMN reminderSent BOOLEAN DEFAULT FALSE,
+				ADD COLUMN techEmail TEXT,
+				ADD COLUMN purchaseEmail TEXT
+			`)
+			if err != nil {
+				log.Fatalf("Failed to migrate database from v1 to v2: %s", err)
+			}
+			return
+		} else {
+			log.Fatalf("Unknown database schema version: %s", string(file))
 		}
 	}
 
