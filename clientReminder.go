@@ -36,7 +36,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 	config := getConfig()
 	for clientID, d := range domains {
 		var client, techEmail, purchaseEmail string
-		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail` FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail)
+		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail)
 		if err != nil {
 			log.Println("failed to get client", err)
 			continue
@@ -78,8 +78,17 @@ func sendEmailToClient(domains map[int][]Domain) {
 				continue
 			}
 			if dbRes.RowsAffected() == 0 {
-				log.Println("Reminder already sent for this domain")
-				continue
+				var status string
+				var sentAt time.Time
+				err = db.QueryRow(context.TODO(), "SELECT status, sent_at FROM reminder_deliveries WHERE domain_id = $1", domain.ID).Scan(&status, &sentAt)
+				if err != nil {
+					log.Println("Failed to get reminder deliveries", err)
+					continue
+				}
+				if status == "sent" && !sentAt.IsZero() {
+					log.Println("Reminder already sent for this domain")
+					continue
+				}
 			}
 			domainList.WriteString(domainCard(
 				"#e3b341",

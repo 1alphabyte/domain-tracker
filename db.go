@@ -22,33 +22,23 @@ func InitDBSetup() {
 		}
 		if string(file) == "v2" {
 			return
-		} else if string(file) == "v1" {
-			_, err := db.Exec(context.TODO(), `
+		} else if string(file) == "" { // old version didn't write any version to the file, so we need to migrate it to v2
+			_, err = db.Exec(context.TODO(), `
+				BEGIN;
+				
 				ALTER TABLE clients 
 				ADD COLUMN techEmail TEXT,
-				ADD COLUMN purchaseEmail TEXT
-			`)
-			if err != nil {
-				log.Fatalf("Failed to migrate database from v1 to v2: %s", err)
-			}
-			_, err = db.Exec(context.TODO(), `
+				ADD COLUMN purchaseEmail TEXT;
+
 				UPDATE clients
 				SET techEmail = '',
 				purchaseEmail = ''
-				WHERE techEmail IS NULL OR purchaseEmail IS NULL
-			`)
-			if err != nil {
-				log.Fatalf("Failed to migrate database from v1 to v2: %s", err)
-			}
-			_, err = db.Exec(context.TODO(), `
+				WHERE techEmail IS NULL OR purchaseEmail IS NULL;
+
 				ALTER TABLE clients
     			ALTER COLUMN techEmail SET NOT NULL,
-    			ALTER COLUMN purchaseEmail SET NOT NULL
-			`)
-			if err != nil {
-				log.Fatalf("Failed to migrate database from v1 to v2: %s", err)
-			}
-			_, err = db.Exec(context.TODO(), `
+    			ALTER COLUMN purchaseEmail SET NOT NULL;
+
 				CREATE TABLE reminder_deliveries (
 					domain_id INTEGER NOT NULL PRIMARY KEY REFERENCES domains(id) ON DELETE CASCADE,
 					reminder_type TEXT NOT NULL DEFAULT 'expiration',
@@ -60,9 +50,10 @@ func InitDBSetup() {
 					error TEXT,
 					created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 					UNIQUE (domain_id, reminder_type, expiration_date)
-				)
-			`)
+				);
 
+				COMMIT;
+			`)
 			if err != nil {
 				log.Fatalf("Failed to migrate database from v1 to v2: Failed to create reminder_deliveries table: %v\n", err)
 			}

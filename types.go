@@ -55,7 +55,6 @@ type Client struct {
 	Name          string `db:"name" json:"name"`
 	TechEmail     string `db:"techemail" json:"techEmail"`
 	PurchaseEmail string `db:"purchaseemail" json:"purchaseEmail"`
-	ReminderSent  bool   `db:"remindersent"`
 }
 
 type DomainReqBody struct {
