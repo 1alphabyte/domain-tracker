@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func getExpiringByClient() map[int][]Domain {
@@ -79,13 +80,13 @@ func sendEmailToClient(domains map[int][]Domain) {
 			}
 			if dbRes.RowsAffected() == 0 {
 				var status string
-				var sentAt time.Time
+				var sentAt pgtype.Timestamptz
 				err = db.QueryRow(context.TODO(), "SELECT status, sent_at FROM reminder_deliveries WHERE domain_id = $1", domain.ID).Scan(&status, &sentAt)
 				if err != nil {
 					log.Println("Failed to get reminder deliveries", err)
 					continue
 				}
-				if status == "sent" && !sentAt.IsZero() {
+				if status == "sent" && !sentAt.Time.IsZero() && sentAt.Valid {
 					log.Println("Reminder already sent for this domain")
 					continue
 				}
@@ -99,7 +100,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 				humanize.Time(domain.Expiration)))
 			if domain.Registrar != "Porkbun LLC" {
 				pbWarn = `<p style="margin:0 0 20px;font-size:14px;color:#57606a;">
-					Additionally, it looks like some or all of your domains aren't with our partner registrar, Porkbun. If you're okay with it, we recommend transferring your domains to Porkbun to ensure that you can take full advantage of our domain services. Please indicate in your reply if you would like to transfer your domains to Porkbun.
+					Additionally, it looks like some or all of your domain(s) aren't with our partner registrar, <a href="https://porkbun.com">Porkbun</a>. We recommend transferring your domains to Porkbun to ensure that you can take full advantage of our domain services. Please indicate in your reply if you would like to transfer your domains to Porkbun.
 				</p>`
 			}
 		}
@@ -122,6 +123,10 @@ func sendEmailToClient(domains map[int][]Domain) {
 			config.DaysDomainExp,
 			pbWarn)
 
+		if domainList.Len() == 0 {
+			log.Println("No domains to send email for client", client)
+			continue
+		}
 		err = sendEmail("Your domains are expiring soon", emailHTML("Your domains are expiring soon", intro+domainList.String()), toEmailStr, config.ReplyEmail)
 		if err != nil {
 			log.Println("Failed to send email to client", err)

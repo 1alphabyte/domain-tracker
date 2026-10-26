@@ -242,7 +242,7 @@ func sendEmail(subj string, body string, toEmail string, replyTo string) error {
 		message.ReplyTo(replyTo)
 	}
 
-	// --- Create the client ---
+	// --- Create the mail client ---
 	c, err := mail.NewClient(
 		config.SMTPHost,
 		mail.WithPort(config.SMTPPort),
