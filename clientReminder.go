@@ -88,6 +88,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 				}
 				if status == "sent" && !sentAt.Time.IsZero() && sentAt.Valid {
 					log.Println("Reminder already sent for this domain")
+					domain.ID = -1
 					continue
 				}
 			}
@@ -137,12 +138,16 @@ func sendEmailToClient(domains map[int][]Domain) {
 					continue
 				}
 			}
-		}
-		for _, domain := range d {
-			_, err = db.Exec(context.TODO(), "UPDATE reminder_deliveries SET sent_at = now(), status = 'sent' WHERE domain_id = $1", domain.ID)
-			if err != nil {
-				log.Println("Failed to update reminder_deliveries", err)
-				continue
+		} else {
+			for _, domain := range d {
+				if domain.ID == -1 {
+					continue
+				}
+				_, err = db.Exec(context.TODO(), "UPDATE reminder_deliveries SET sent_at = now(), status = 'sent' WHERE domain_id = $1", domain.ID)
+				if err != nil {
+					log.Println("Failed to update reminder_deliveries", err)
+					continue
+				}
 			}
 		}
 	}
