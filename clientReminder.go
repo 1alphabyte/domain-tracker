@@ -33,17 +33,27 @@ func getExpiringByClient() map[int][]Domain {
 	return expiringDomains
 }
 
-func sendEmailToClient(domains map[int][]Domain) {
+func sendEmailToClient(domains map[int][]Domain, progress chan<- string) {
+	send := func(msg string) {
+		log.Println(msg)
+		if progress != nil {
+			select {
+			case progress <- msg:
+			default:
+			}
+		}
+	}
+
 	config := getConfig()
 	for clientID, d := range domains {
 		var client, techEmail, purchaseEmail string
 		err := db.QueryRow(context.TODO(), "SELECT name, techEmail, purchaseEmail FROM clients WHERE id = $1", clientID).Scan(&client, &techEmail, &purchaseEmail)
 		if err != nil {
-			log.Println("failed to get client", err)
+			send("failed to get client: " + client + " - " + err.Error())
 			continue
 		}
 		if techEmail == "" && purchaseEmail == "" {
-			log.Println("Client has no email")
+			send("Client has no email: " + client)
 			continue
 		}
 		var domainList strings.Builder
@@ -75,7 +85,7 @@ func sendEmailToClient(domains map[int][]Domain) {
 				ON CONFLICT (domain_id, reminder_type, expiration_date) DO NOTHING`,
 				domain.ID, domain.Expiration, toEmailStr)
 			if err != nil {
-				log.Println("Failed to insert reminder deliveries", err)
+				send("Failed to insert reminder deliveries: " + err.Error())
 				continue
 			}
 			if dbRes.RowsAffected() == 0 {
@@ -83,11 +93,11 @@ func sendEmailToClient(domains map[int][]Domain) {
 				var sentAt pgtype.Timestamptz
 				err = db.QueryRow(context.TODO(), "SELECT status, sent_at FROM reminder_deliveries WHERE domain_id = $1", domain.ID).Scan(&status, &sentAt)
 				if err != nil {
-					log.Println("Failed to get reminder deliveries", err)
+					send("Failed to get reminder deliveries: " + err.Error())
 					continue
 				}
 				if status == "sent" && !sentAt.Time.IsZero() && sentAt.Valid {
-					log.Println("Reminder already sent for this domain")
+					send("Reminder already sent for this domain: " + domain.Domain)
 					domain.ID = -1
 					continue
 				}
@@ -125,12 +135,15 @@ func sendEmailToClient(domains map[int][]Domain) {
 			pbWarn)
 
 		if domainList.Len() == 0 {
-			log.Println("No domains to send email for client", client)
+			send("No domains to send email for client: " + client)
 			continue
 		}
+
+		send(fmt.Sprintf("Sending email to client: %s, domains: %d. To: %s", client, len(d), toEmailStr))
+
 		err = sendEmail("Your domains are expiring soon", emailHTML("Your domains are expiring soon", intro+domainList.String()), toEmailStr, config.ReplyEmail)
 		if err != nil {
-			log.Println("Failed to send email to client", err)
+			send(fmt.Sprintf("Failed to send email to client: %s", err.Error()))
 			for _, domain := range d {
 				_, err = db.Exec(context.TODO(), "UPDATE reminder_deliveries SET sent_at = null, status = 'error' WHERE domain_id = $1", domain.ID)
 				if err != nil {

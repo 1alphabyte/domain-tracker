@@ -425,6 +425,7 @@ func manRefHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		updateDomains(progress)
 		sendExpDomReminders(progress)
+		sendEmailToClient(getExpiringByClient(), progress)
 		conf := getConfig()
 		conf.LastReminderSent = time.Now()
 		writeConfig(conf)
@@ -608,7 +609,7 @@ func main() {
 				dbCleanup()
 				updateDomains(nil)
 				sendExpDomReminders(nil)
-				sendEmailToClient(getExpiringByClient())
+				sendEmailToClient(getExpiringByClient(), nil)
 				updateTLSCerts()
 				sendTLSExpirationReminders()
 				// Write last run

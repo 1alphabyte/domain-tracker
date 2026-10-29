@@ -344,6 +344,8 @@ function main() {
 	let activeRefreshStream = null;
 
 	document.getElementById("manRef").addEventListener("click", () => {
+		if (!confirm("!WARNING! This will send emails directly to clients with expiring domains, are you sure you want to continue?")) 
+			return;
 		const diag = document.getElementById("manRefDiag");
 		const log = document.getElementById("refreshLog");
 		const status = document.getElementById("refreshStatus");
