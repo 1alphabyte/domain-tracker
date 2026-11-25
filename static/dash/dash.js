@@ -61,6 +61,7 @@ async function loadDomains() {
 			document.getElementById("eTechEmail").value = client.techEmail;
 			document.getElementById("ePurchaseEmail").value = client.purchaseEmail;
 			document.getElementById("editCDInner").dataset.id = client.ID;
+			document.getElementById("eCNumDomains").innerHTML = domains.filter((elm) => elm.clientID === client.ID).length;
 		}
 	});
 	sessionStorage.setItem("domains", JSON.stringify(domains));
@@ -277,6 +278,9 @@ function main() {
 	document.getElementById("AddC").addEventListener("click", () => {
 		document.getElementById("AddCDiag").showModal();
 	});
+	document.getElementById("importClients").addEventListener("click", () => {
+		document.getElementById("importC").showModal();
+	});
 
 	document.getElementById("editC").addEventListener("click", () => {
 		document.getElementById("editCDiag").showModal();
@@ -285,7 +289,7 @@ function main() {
 	document.getElementById("editCForm").addEventListener("submit", (e) => {
 		e.preventDefault();
 		fetch(`/api/client/${e.target.parentElement.dataset.id}`, {
-			method: "PUT",
+			method: "PATCH",
 			body: JSON.stringify({
 				name: document.getElementById("eClientName").value,
 				techEmail: document.getElementById("eTechEmail").value,
@@ -344,7 +348,7 @@ function main() {
 	let activeRefreshStream = null;
 
 	document.getElementById("manRef").addEventListener("click", () => {
-		if (!confirm("!WARNING! This will send emails directly to clients with expiring domains, are you sure you want to continue?")) 
+		if (!confirm("!WARNING! This will send emails directly to clients with expiring domains, are you sure you want to continue?"))
 			return;
 		const diag = document.getElementById("manRefDiag");
 		const log = document.getElementById("refreshLog");
@@ -395,6 +399,39 @@ function main() {
 			row.hidden = !cellText.includes(searchTerm);
 		});
 	});
+
+	document.getElementById("importCData").addEventListener("input", (e) => {
+		try {
+			JSON.parse(e.target.value)
+			document.getElementById("error-txt").hidden = true;
+		} catch (error) {
+			document.getElementById("error-txt").textContent = "Invalid JSON: " + error.message;
+			document.getElementById("error-txt").hidden = false;
+		}
+	});
+
+	document.getElementById("importCBtn").addEventListener("click", () => {
+		if (document.getElementById("error-txt").hidden == false) {
+			return;
+		}
+		document.getElementById("importCBtn").hidden = true;
+		document.getElementById("error-txt").innerHTML = "This may take a while...<br />Please wait";
+		document.getElementById("error-txt").hidden = false;
+		fetch("/api/client", {
+			method: "PUT",
+			body: document.getElementById("importCData").value,
+		}).then(async (res) => {
+			if (res.ok) {
+				document.getElementById("importCData").value = await res.text();
+				document.getElementById("importCData").ariaReadOnly = true;
+				document.getElementById("error-txt").hidden = true;
+			} else {
+				document.getElementById("error-txt").innerHTML = await res.text();
+				document.getElementById("importCBtn").hidden = false;
+				document.getElementById("importCData").value = "";
+			}
+		});
+	})
 }
 
 main();

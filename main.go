@@ -229,6 +229,8 @@ func clientHandler(w http.ResponseWriter, r *http.Request) {
 		clientListHandler(w)
 	case "POST":
 		clientAddHandler(w, r)
+	case "PUT":
+		clientImportHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -253,7 +255,7 @@ func clientHandlerWithID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
-	case "PUT":
+	case "PATCH":
 		clientEditHandler(w, r, id)
 	case "DELETE":
 		deleteClientHandler(w, r, id)
@@ -288,6 +290,74 @@ func clientListHandler(w http.ResponseWriter) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(clients)
+}
+
+func clientImportHandler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("panic occurred:", err)
+			http.Error(w, "Bad Request", 400)
+			return
+		}
+	}()
+
+	var reqBody map[string]any
+
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+
+	var res string
+	send := func(msg string) {
+		log.Println(msg)
+		res += msg + "\n"
+	}
+
+	for client, b := range reqBody {
+		purh := b.(map[string]any)["purh"].([]any)
+		tech := b.(map[string]any)["tech"].([]any)
+
+		purhStrings := make([]string, len(purh))
+		for i, value := range purh {
+			purhStrings[i] = value.(string)
+		}
+		techStrings := make([]string, len(tech))
+		for i, value := range tech {
+			techStrings[i] = value.(string)
+		}
+		if client == "" || (len(purhStrings) <= 0 && len(techStrings) <= 0) {
+			send("Skipping client due to missing required fields: " + client)
+			continue
+		}
+
+		var cID int
+		var name string
+		err := db.QueryRow(context.TODO(), "SELECT id, name FROM clients WHERE name ILIKE '%' || $1 || '%'", client).Scan(&cID, &name)
+		if err == pgx.ErrNoRows {
+			_, err := db.Exec(context.TODO(), "INSERT INTO clients (name, techEmail, purchaseEmail) VALUES ($1, $2, $3)", client, strings.Join(techStrings, ","), strings.Join(purhStrings, ","))
+			if err != nil {
+				send("Failed to insert client: " + err.Error())
+				continue
+			}
+			send("Inserted: " + client)
+		} else if err != nil {
+			send("Failed to check if client exists: " + err.Error())
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		send("Adding emails to " + client)
+		_, err = db.Exec(context.TODO(), "UPDATE clients SET techEmail = $1, purchaseEmail = $2 WHERE id = $3", strings.Join(techStrings, ","), strings.Join(purhStrings, ","), cID)
+		if err != nil {
+			http.Error(w, "Failed to update client", http.StatusInternalServerError)
+			log.Print(err)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(res))
 }
 
 func clientEditHandler(w http.ResponseWriter, r *http.Request, id string) {

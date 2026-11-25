@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
 	<link rel="stylesheet" href="dash.css">
 	<link rel="icon" type="image/x-icon" href="/images/favicon.webp">
 </head>
+
 <body>
 	<header>
 		<img id="logo" alt="CBT logo" src="/images/logo.webp" />
@@ -17,17 +19,25 @@
 		<button onclick="location.assign('./tls')">Open TLS crt Tracker</button>
 	</header>
 	<button id="addD">Add Domain</button>
-	<button id="AddC">Add Client</button>
-	<button id="editC">Edit Client</button>
-	<button id="manRef">Refresh All</button>
+	<div class="dropdown">
+		<button class="dropbtn">Actions</button>
+		<div class="dropdown-content">
+			<button id="AddC">Add Client</button>
+			<button id="editC">Edit Client</button>
+			<button id="manRef">Refresh All</button>
+			<button id="importClients">Import client</button>
+		</div>
+	</div>
 	<table>
 		<tr>
 			<th>Domain <i id="tableHeader0" onclick="sortTable(0)" class="arrow left"></i></th>
 			<th>Expires <i id="tableHeader1" onclick="sortTableDate(1)" class="arrow left"></i></th>
-			<th id="ns">Nameservers <img class="togg" id="tableHeader2" title="Switch to DNS view" src="../images/swap.svg" /></th>
+			<th id="ns">Nameservers <img class="togg" id="tableHeader2" title="Switch to DNS view"
+					src="../images/swap.svg" /></th>
 			<th id="aaaa">AAAA Record</th>
 			<th id="mx">MX Record</th>
-			<th id="a">A Record <img class="togg" id="tableHeader22" title="Switch to Nameserver view" src="../images/swap.svg" /></th>
+			<th id="a">A Record <img class="togg" id="tableHeader22" title="Switch to Nameserver view"
+					src="../images/swap.svg" /></th>
 			<th>Registrar <i id="tableHeader6" onclick="sortTable(6)" class="arrow left"></i></th>
 			<th>Client <i id="tableHeader7" onclick="sortTable(7)" class="arrow left"></i></th>
 			<th>Notes</th>
@@ -39,14 +49,15 @@
 		<h3>Add domain</h3>
 		<form id="addDForm">
 			<label for="domain">Domain</label>
-			<input type="text" id="domain" pattern="^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\..{0,61}[a-z0-9]$" required autofocus />
+			<input type="text" id="domain" pattern="^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\..{0,61}[a-z0-9]$" required
+				autofocus />
 			<label for="client">Select Client</label>
 			<select id="client" required>
 				<option value="null" disabled selected>Select Client</option>
 			</select>
 			<label for="notes">Notes</label>
 			<textarea id="notes" placeholder="Notes" maxlength="1000" minlength="1"></textarea>
-			<input type="submit" value="Add"/>
+			<input type="submit" value="Add" />
 		</form>
 	</dialog>
 	<dialog id="AddCDiag">
@@ -59,7 +70,7 @@
 			<input type="email" id="techEmail" placeholder="Technical Email" />
 			<label for="purchaseEmail">Purchase Email</label>
 			<input type="email" id="purchaseEmail" placeholder="Purchase Email" />
-			<input type="submit" value="Add"/>
+			<input type="submit" value="Add" />
 		</form>
 	</dialog>
 	<dialog id="rawDataDiag">
@@ -70,7 +81,8 @@
 
 	<dialog id="editDDiag">
 		<button class="closeDiag">&#10006;</button>
-		<h3>Edit domain</h3><p id="Edomain"></p>
+		<h3>Edit domain</h3>
+		<p id="Edomain"></p>
 		<form id="editDForm">
 			<label for="Eclient">Client</label>
 			<select id="Eclient" required>
@@ -78,7 +90,7 @@
 			</select>
 			<label for="Enotes">Notes</label>
 			<textarea id="Enotes" placeholder="Notes" maxlength="1000" minlength="1"></textarea>
-			<input type="submit" value="Edit"/>
+			<input type="submit" value="Edit" />
 		</form>
 	</dialog>
 	<dialog id="editCDiag">
@@ -93,8 +105,9 @@
 				<input type="email" id="eTechEmail" placeholder="Technical Email" />
 				<label for="ePurchaseEmail">Purchase Email</label>
 				<input type="email" id="ePurchaseEmail" placeholder="Purchase Email" />
-				<input type="submit" value="Edit"/>
+				<input type="submit" value="Edit" />
 			</form>
+			<p>Number of domains associated with this client: <span id="eCNumDomains"></span></p>
 			<button id="deleteClient">Delete Client</button>
 		</div>
 	</dialog>
@@ -104,6 +117,35 @@
 		<h3>Refresh All Domains</h3>
 		<div id="refreshLog"></div>
 		<p id="refreshStatus"></p>
+	</dialog>
+	<dialog id="importC">
+		<button class="closeDiag">&#10006;</button>
+		<h3>Import Clients</h3>
+		<p>Paste in the JSON data below:</p>
+		<textarea id="importCData"></textarea><br />
+		<p id="error-txt" hidden></p>
+		<button id="importCBtn">Import</button>
+		<details>
+			<p>The JSON format is as follows:</p>
+			<pre><code>{
+	"CLIENT1": {
+		"tech": [
+			"tech@client1.tld"
+		],
+		"purh": [
+			"purh@client1.tld"
+		]
+	},
+	"CLIENT2": {
+		// either tech or purh is required but both aren't
+		"tech": [
+			"tech@client2.tld"
+		],
+		"purh": []
+	}
+}
+			</code></pre>
+		</details>
 	</dialog>
 	<script src="dash.js"></script>
 </body>

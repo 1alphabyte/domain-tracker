@@ -1,20 +1,20 @@
 /* ── Design tokens ─────────────────────────────────────────────── */
 :root {
-	--bg:          #0d1117;
-	--surface-1:   #161b22;
-	--surface-2:   #1c2333;
-	--surface-3:   #21262d;
-	--border:      #30363d;
-	--text:        #e6edf3;
-	--text-muted:  #8b949e;
-	--blue:        #29a8e1;
-	--blue-dark:   #1a87ba;
-	--purple:      #7c6af7;
+	--bg: #0d1117;
+	--surface-1: #161b22;
+	--surface-2: #1c2333;
+	--surface-3: #21262d;
+	--border: #30363d;
+	--text: #e6edf3;
+	--text-muted: #8b949e;
+	--blue: #29a8e1;
+	--blue-dark: #1a87ba;
+	--purple: #7c6af7;
 	--purple-dark: #6355d4;
-	--red:         #f85149;
-	--red-dark:    #da3633;
-	--warning:     #e3b341;
-	--cyan:        #63cef9;
+	--red: #f85149;
+	--red-dark: #da3633;
+	--warning: #e3b341;
+	--cyan: #63cef9;
 }
 
 /* ── Base ──────────────────────────────────────────────────────── */
@@ -55,7 +55,7 @@ header h1 {
 
 #searchContainer {
 	position: absolute;
-	right: 160px;
+	right: 5px;
 	width: 230px;
 	display: flex;
 	align-items: center;
@@ -87,7 +87,8 @@ header h1 {
 }
 
 /* ── Buttons ───────────────────────────────────────────────────── */
-button, input[type="submit"] {
+button,
+input[type="submit"] {
 	border: none;
 	border-radius: 6px;
 	padding: 7px 15px;
@@ -101,11 +102,13 @@ button, input[type="submit"] {
 	cursor: pointer;
 }
 
-button:hover, input[type="submit"]:hover {
+button:hover,
+input[type="submit"]:hover {
 	background-color: var(--blue-dark);
 }
 
-button:active, input[type="submit"]:active {
+button:active,
+input[type="submit"]:active {
 	transform: scale(0.97);
 }
 
@@ -146,9 +149,17 @@ td {
 	border-color: var(--blue);
 }
 
-.left  { transform: rotate(135deg); }
-.up    { transform: rotate(-135deg); }
-.down  { transform: rotate(45deg); }
+.left {
+	transform: rotate(135deg);
+}
+
+.up {
+	transform: rotate(-135deg);
+}
+
+.down {
+	transform: rotate(45deg);
+}
 
 /* ── DNS toggle icons ──────────────────────────────────────────── */
 .togg {
@@ -165,7 +176,10 @@ td {
 }
 
 /* DNS columns hidden by default; shown when table has .dns-view */
-.dnsRecord, #aaaa, #mx, #a {
+.dnsRecord,
+#aaaa,
+#mx,
+#a {
 	display: none;
 }
 
@@ -186,10 +200,12 @@ table.dns-view #ns {
 	border: var(--cyan) solid 0.5px;
 	border-right: none;
 }
+
 #mx {
 	border-top: var(--cyan) solid 0.5px;
 	border-bottom: var(--cyan) solid 0.5px;
 }
+
 #a {
 	border: var(--cyan) solid 0.5px;
 	border-left: none;
@@ -238,7 +254,9 @@ table.dns-view #ns {
 }
 
 /* ── Inputs / Selects / Textarea ───────────────────────────────── */
-input, select, textarea {
+input,
+select,
+textarea {
 	border-radius: 6px;
 	padding: 6px 10px;
 	border: 1px solid var(--border);
@@ -248,7 +266,9 @@ input, select, textarea {
 	transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
 	outline: none;
 	border-color: var(--blue);
 	box-shadow: 0 0 0 3px rgba(41, 168, 225, 0.15);
@@ -309,7 +329,7 @@ dialog h3 {
 }
 
 /* ── Action area buttons ───────────────────────────────────────── */
-body > button {
+body>button {
 	margin-top: 10px;
 	margin-bottom: 4px;
 }
@@ -381,4 +401,44 @@ a:hover {
 /* ── Misc ──────────────────────────────────────────────────────── */
 #warning {
 	color: var(--warning);
+}
+
+/* Dropdown Button */
+.dropbtn {
+	background-color: var(--blue);
+	color: var(--text);
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+	position: relative;
+	display: inline-block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+	display: none;
+	position: absolute;
+	background-color: var(--surface-1);
+	min-width: 130px;
+	z-index: 1;
+}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-content {
+	display: block;
+}
+
+/* Change the background color of the dropdown button when the dropdown content is shown */
+.dropdown:hover .dropbtn {
+	background-color: var(--blue-dark);
+}
+
+#importC textarea {
+	min-width: 400px;
+	min-height: 200px;
+}
+
+#importC pre {
+	tab-size: 2;
 }

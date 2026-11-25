@@ -35,7 +35,7 @@ func updateDomains(progress chan<- string) {
 	// Collect rows into a slice of Domain structs
 	domains, err := getDomains()
 	if err != nil {
-		log.Println("Update domains failed: could not fetch domains")
+		send("Update domains failed: could not fetch domains")
 		return
 	}
 
@@ -99,7 +99,7 @@ func sendExpDomReminders(progress chan<- string) {
 
 	domains, err := getDomains()
 	if err != nil {
-		log.Println("Failed to send reminders: could not fetch domains")
+		send("Failed to send reminders: could not fetch domains")
 		return
 	}
 	// Array to hold domains needing reminders
@@ -148,7 +148,7 @@ func sendExpDomReminders(progress chan<- string) {
 			var client string
 			err = db.QueryRow(context.TODO(), "SELECT name FROM clients WHERE id = $1", d.ClientID).Scan(&client)
 			if err != nil {
-				log.Println("failed to get client", err)
+				send("failed to get client" + err.Error())
 				client = "Unknown"
 			}
 
